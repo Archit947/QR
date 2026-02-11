@@ -162,10 +162,8 @@ const ContentManagement = () => {
 
         if (error) throw error;
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-            .from('Training')
-            .getPublicUrl(filePath);
+        // Construct public URL directly (more reliable than getPublicUrl)
+        const publicUrl = `https://umdkelzysoumnffzqsrn.supabase.co/storage/v1/object/public/Training/${filePath}`;
 
         return publicUrl;
     };
