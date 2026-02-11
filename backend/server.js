@@ -28,6 +28,17 @@ const statsRoutes = require('./routes/statsRoutes');
 
 app.use('/api/qr', qrRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/employee', employeeRoutes);
+app.use('/api/stats', statsRoutes);
+
+// Export for Vercel (or other serverless environments)
+module.exports = app;
+
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
 app.use('/api/employees', employeeRoutes);
 app.use('/api/stats', statsRoutes);
 
