@@ -150,7 +150,7 @@ const ContentManagement = () => {
         const filePath = `training-content/${fileName}`;
 
         const { data, error } = await supabase.storage
-            .from('training-files')
+            .from('Training')
             .upload(filePath, file, {
                 cacheControl: '3600',
                 upsert: false,
@@ -164,7 +164,7 @@ const ContentManagement = () => {
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-            .from('training-files')
+            .from('Training')
             .getPublicUrl(filePath);
 
         return publicUrl;
