@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, FileText, Video, Trash2, Link as LinkIcon, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, FileText, Video, Trash2, Link as LinkIcon, Search, RefreshCw, AlertCircle, Upload, X } from 'lucide-react';
 import { contentAPI, qrAPI } from '../lib/apiService';
+import { supabase } from '../lib/supabaseClient';
 
 const ContentManagement = () => {
     const [contents, setContents] = useState([]);
@@ -10,6 +11,10 @@ const ContentManagement = () => {
     const [activeContent, setActiveContent] = useState(null);
     const [newContent, setNewContent] = useState({ title: '', type: 'PDF', url: '' });
     const [selectedQrIds, setSelectedQrIds] = useState([]);
+    const [uploadMode, setUploadMode] = useState('url'); // 'url' or 'file'
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
     const [loading, setLoading] = useState(true);
@@ -64,6 +69,9 @@ const ContentManagement = () => {
         setNewContent({ title: '', type: 'PDF', url: '' });
         setSelectedQrIds([]);
         setActiveContent(null);
+        setUploadMode('url');
+        setSelectedFile(null);
+        setUploadProgress(0);
     };
 
     const handleDelete = async (id) => {
@@ -100,17 +108,92 @@ const ContentManagement = () => {
         }
     };
 
+    const handleFileSelect = (file) => {
+        if (!file) return;
+        
+        // Validate file type
+        const validPdfTypes = ['application/pdf'];
+        const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+        
+        if (newContent.type === 'PDF' && !validPdfTypes.includes(file.type)) {
+            alert('Please select a PDF file');
+            return;
+        }
+        
+        if (newContent.type === 'Video' && !validVideoTypes.includes(file.type)) {
+            alert('Please select a valid video file (MP4, WebM, OGG, MOV)');
+            return;
+        }
+        
+        setSelectedFile(file);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        handleFileSelect(file);
+    };
+
+    const uploadFileToSupabase = async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `training-content/${fileName}`;
+
+        const { data, error } = await supabase.storage
+            .from('training-files')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false,
+                onUploadProgress: (progress) => {
+                    const percent = (progress.loaded / progress.total) * 100;
+                    setUploadProgress(Math.round(percent));
+                }
+            });
+
+        if (error) throw error;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('training-files')
+            .getPublicUrl(filePath);
+
+        return publicUrl;
+    };
+
     const handleUpload = async (e) => {
         e.preventDefault();
         try {
             setSubmitting(true);
             setError(null);
+            
+            let contentUrl = newContent.url;
+            
+            // If file mode, upload file first
+            if (uploadMode === 'file' && selectedFile) {
+                contentUrl = await uploadFileToSupabase(selectedFile);
+            }
+            
+            if (!contentUrl) {
+                throw new Error('No URL or file provided');
+            }
+            
             await contentAPI.upload({
                 title: newContent.title,
                 type: newContent.type,
-                url: newContent.url,
+                url: contentUrl,
                 qrIds: selectedQrIds,
             });
+            
             setShowModal(false);
             resetForm();
             await loadContent();
@@ -118,6 +201,7 @@ const ContentManagement = () => {
             setError(err.message || 'Failed to upload content');
         } finally {
             setSubmitting(false);
+            setUploadProgress(0);
         }
     };
 
@@ -343,15 +427,108 @@ const ContentManagement = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Content URL</label>
-                                <input
-                                    type="url"
-                                    required
-                                    value={newContent.url}
-                                    onChange={(e) => setNewContent({ ...newContent, url: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-                                    placeholder="https://..."
-                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Content Source</label>
+                                <div className="flex gap-2 mb-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setUploadMode('url'); setSelectedFile(null); }}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                                            uploadMode === 'url'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        Enter URL
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setUploadMode('file'); setNewContent({ ...newContent, url: '' }); }}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                                            uploadMode === 'file'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        Upload File
+                                    </button>
+                                </div>
+
+                                {uploadMode === 'url' ? (
+                                    <input
+                                        type="url"
+                                        required={uploadMode === 'url'}
+                                        value={newContent.url}
+                                        onChange={(e) => setNewContent({ ...newContent, url: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+                                        placeholder="https://..."
+                                    />
+                                ) : (
+                                    <div>
+                                        <div
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                                                isDragging
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : 'border-gray-300 hover:border-gray-400'
+                                            }`}
+                                        >
+                                            {selectedFile ? (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-center gap-2 text-green-600">
+                                                        <FileText size={24} />
+                                                        <span className="font-medium">{selectedFile.name}</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">
+                                                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedFile(null)}
+                                                        className="text-red-600 hover:text-red-700 text-sm flex items-center gap-1 mx-auto"
+                                                    >
+                                                        <X size={16} />
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <Upload className="mx-auto mb-3 text-gray-400" size={32} />
+                                                    <p className="text-sm text-gray-600 mb-2">
+                                                        Drag and drop your {newContent.type} file here
+                                                    </p>
+                                                    <p className="text-xs text-gray-400 mb-3">or</p>
+                                                    <label className="cursor-pointer">
+                                                        <span className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 inline-block">
+                                                            Browse Files
+                                                        </span>
+                                                        <input
+                                                            type="file"
+                                                            accept={newContent.type === 'PDF' ? '.pdf' : 'video/*'}
+                                                            onChange={(e) => handleFileSelect(e.target.files[0])}
+                                                            className="hidden"
+                                                        />
+                                                    </label>
+                                                </>
+                                            )}
+                                        </div>
+                                        {uploadProgress > 0 && uploadProgress < 100 && (
+                                            <div className="mt-3">
+                                                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                                                    <span>Uploading...</span>
+                                                    <span>{uploadProgress}%</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div
+                                                        className="bg-blue-600 h-2 rounded-full transition-all"
+                                                        style={{ width: `${uploadProgress}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Link to QR Codes</label>
@@ -392,9 +569,9 @@ const ContentManagement = () => {
                                 <button
                                     type="submit"
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
-                                    disabled={submitting}
+                                    disabled={submitting || (uploadMode === 'file' && !selectedFile) || (uploadMode === 'url' && !newContent.url)}
                                 >
-                                    {submitting ? 'Uploading...' : 'Upload'}
+                                    {submitting ? (uploadProgress > 0 ? `Uploading... ${uploadProgress}%` : 'Saving...') : 'Upload'}
                                 </button>
                             </div>
                         </form>
