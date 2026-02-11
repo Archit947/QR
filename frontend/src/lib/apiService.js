@@ -1,24 +1,23 @@
 const getApiBaseUrl = () => {
-    // If env var is set to a specific API URL, use it
-    if (import.meta.env.VITE_API_URL && !import.meta.env.VITE_API_URL.includes('5173')) {
+    // 1) Explicit env var wins
+    if (import.meta.env.VITE_API_URL) {
         return import.meta.env.VITE_API_URL;
     }
 
     const { hostname, protocol } = window.location;
 
-    // Intelligent detection for Dev Tunnels / Port Forwarding
-    // If current URL has '5173' in it (standard Vite port), try to replace it with '5000' (standard Express port)
+    // 2) Dev tunnel heuristic: swap 5173 -> 5000
     if (hostname.includes('5173')) {
         const newHostname = hostname.replace('5173', '5000');
         return `${protocol}//${newHostname}/api`;
     }
-    
-    // Fallback for localhost development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:5000/api';
+
+    // 3) Vercel / any non-localhost: use same-origin /api
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        return '/api';
     }
 
-    // Default fallback if we can't determine
+    // 4) Local dev fallback
     return 'http://localhost:5000/api';
 };
 
