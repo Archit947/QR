@@ -6,6 +6,8 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/vite.svg", "dest": "/frontend/dist/vite.svg" },
+    { "src": "/favicon.ico", "dest": "/frontend/dist/vite.svg" },
     { "src": "/(.*\\..*)", "dest": "/frontend/dist/$1" },
     { "src": "/(.*)", "dest": "/frontend/dist/index.html" }
   ]
