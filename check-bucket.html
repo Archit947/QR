@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Supabase Bucket</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Bucket Checker</h1>
+    <button onclick="checkBuckets()">Check Buckets</button>
+    <button onclick="createBucket()">Create training-files Bucket</button>
+    <pre id="output"></pre>
+
+    <script>
+        const SUPABASE_URL = 'https://umdkelzysoumnffzqsrn.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtZGtlbHp5c291bW5mZnpxc3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3OTE1MTcsImV4cCI6MjA4NjM2NzUxN30.UQm7cV-gMSXaGly6Xp3C1pH4pWTRqgQlrMQfzyDdCk0';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function checkBuckets() {
+            const output = document.getElementById('output');
+            output.textContent = 'Checking buckets...\n';
+            
+            const { data, error } = await supabase.storage.listBuckets();
+            
+            if (error) {
+                output.textContent += 'Error: ' + error.message;
+            } else {
+                output.textContent += 'Existing buckets:\n' + JSON.stringify(data, null, 2);
+                
+                const trainingBucket = data.find(b => b.name === 'training-files');
+                if (trainingBucket) {
+                    output.textContent += '\n\n✅ training-files bucket EXISTS!';
+                    output.textContent += '\nPublic: ' + trainingBucket.public;
+                } else {
+                    output.textContent += '\n\n❌ training-files bucket NOT FOUND';
+                    output.textContent += '\nClick "Create training-files Bucket" button';
+                }
+            }
+        }
+
+        async function createBucket() {
+            const output = document.getElementById('output');
+            output.textContent = 'Creating bucket...\n';
+            
+            const { data, error } = await supabase.storage.createBucket('training-files', {
+                public: true,
+                fileSizeLimit: 52428800 // 50MB
+            });
+            
+            if (error) {
+                output.textContent += 'Error: ' + error.message;
+                output.textContent += '\n\nYou may need to create it manually in the Supabase Dashboard with service_role key permissions.';
+            } else {
+                output.textContent += '✅ SUCCESS! Bucket created: ' + JSON.stringify(data, null, 2);
+                output.textContent += '\n\nNow try uploading a file in your admin panel!';
+            }
+        }
+    </script>
+</body>
+</html>

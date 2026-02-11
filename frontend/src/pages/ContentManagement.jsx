@@ -13,6 +13,7 @@ const ContentManagement = () => {
     const [selectedQrIds, setSelectedQrIds] = useState([]);
     const [uploadMode, setUploadMode] = useState('url'); // 'url' or 'file'
     const [selectedFile, setSelectedFile] = useState(null);
+    const [videoDuration, setVideoDuration] = useState(0);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -72,6 +73,7 @@ const ContentManagement = () => {
         setUploadMode('url');
         setSelectedFile(null);
         setUploadProgress(0);
+        setVideoDuration(0);
     };
 
     const handleDelete = async (id) => {
@@ -108,7 +110,26 @@ const ContentManagement = () => {
         }
     };
 
-    const handleFileSelect = (file) => {
+    const getVideoDuration = (file) => {
+        return new Promise((resolve) => {
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            
+            video.onloadedmetadata = () => {
+                window.URL.revokeObjectURL(video.src);
+                const duration = Math.round(video.duration);
+                resolve(duration);
+            };
+            
+            video.onerror = () => {
+                resolve(0); // Default to 0 if error
+            };
+            
+            video.src = URL.createObjectURL(file);
+        });
+    };
+
+    const handleFileSelect = async (file) => {
         if (!file) return;
         
         // Validate file type
@@ -126,6 +147,12 @@ const ContentManagement = () => {
         }
         
         setSelectedFile(file);
+        
+        // Get video duration if it's a video
+        if (newContent.type === 'Video') {
+            const duration = await getVideoDuration(file);
+            setVideoDuration(duration);
+        }
     };
 
     const handleDragOver = (e) => {
@@ -190,6 +217,7 @@ const ContentManagement = () => {
                 type: newContent.type,
                 url: contentUrl,
                 qrIds: selectedQrIds,
+                duration: videoDuration, // Send duration (0 for PDFs, actual for videos)
             });
             
             setShowModal(false);

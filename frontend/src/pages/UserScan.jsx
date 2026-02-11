@@ -50,6 +50,24 @@ const UserScan = () => {
         setCompletedAll(allDone);
     };
 
+    // Format duration in seconds to human-readable text
+    const formatDuration = (seconds) => {
+        if (!seconds || seconds === 0) return '~5 mins'; // Default for content without duration
+        
+        if (seconds < 60) {
+            return `${seconds} sec${seconds !== 1 ? 's' : ''}`;
+        }
+        
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        
+        if (remainingSeconds === 0) {
+            return `${minutes} min${minutes !== 1 ? 's' : ''}`;
+        }
+        
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')} mins`;
+    };
+
     const markComplete = async (contentId) => {
         if (!user) return;
         try {
@@ -170,7 +188,7 @@ const UserScan = () => {
                                     <h4 className={`font-semibold ${isCompleted ? 'text-green-800' : 'text-gray-800'}`}>
                                         {content.title}
                                     </h4>
-                                    <p className="text-xs text-gray-500 mt-1">{content.type} • 5 mins</p>
+                                    <p className="text-xs text-gray-500 mt-1">{content.type} • {formatDuration(content.duration)}</p>
                                 </div>
                                 <div>
                                     {isCompleted ? (
@@ -207,7 +225,22 @@ const UserScan = () => {
                                 width="100%"
                                 height="100%"
                                 controls
+                                playing={false}
+                                playsinline
+                                config={{
+                                    file: {
+                                        attributes: {
+                                            controlsList: 'nodownload',
+                                            playsInline: true,
+                                            preload: 'metadata'
+                                        }
+                                    }
+                                }}
                                 onEnded={() => markComplete(activeContent.id)}
+                                onError={(e) => {
+                                    console.error('Video error:', e);
+                                    console.log('Video URL:', activeContent.url);
+                                }}
                             />
                         ) : (
                             <div className="w-full h-full bg-white text-black p-4 overflow-auto">

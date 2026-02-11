@@ -16,12 +16,12 @@ exports.getAllContent = async (req, res) => {
 };
 
 exports.uploadContent = async (req, res) => {
-    const { title, type, url, qrIds } = req.body;
+    const { title, type, url, qrIds, duration } = req.body;
     try {
         // 1. Insert Content
         const { data: contentData, error: contentError } = await supabase
             .from('training_content')
-            .insert([{ title, type, url }])
+            .insert([{ title, type, url, duration: duration || 0 }])
             .select()
             .single();
 
