@@ -39,6 +39,11 @@ const request = async (endpoint, options = {}) => {
     try {
         const response = await fetch(url, config);
         
+        // Handle 204 No Content responses (e.g., successful DELETE)
+        if (response.status === 204) {
+            return null;
+        }
+        
         // Check for HTML response (which means we hit the wrong server/404 page)
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") === -1) {
