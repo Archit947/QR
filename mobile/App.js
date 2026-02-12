@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { CoursesProvider } from './src/contexts/CoursesContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QrCode, Home, BookOpen, ClipboardList, User } from 'lucide-react-native';
 
@@ -18,6 +19,7 @@ import AccountScreen from './src/screens/AccountScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
 
 function AppTabs() {
   return (
@@ -55,6 +57,7 @@ function AppTabs() {
   );
 }
 
+
 function RootNavigator() {
   const { session } = useAuth();
   return (
@@ -62,9 +65,11 @@ function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {session ? (
           <Stack.Screen name="Main" component={AppTabs} />
+          // Add CourseScreen to the stack for navigation
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}
+        <Stack.Screen name="Course" component={CourseScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -74,8 +79,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <StatusBar style="dark" />
-        <RootNavigator />
+        <CoursesProvider>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </CoursesProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

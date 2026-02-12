@@ -1,14 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { BookOpen, Search, Filter, Play, Clock, ChevronRight } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AcademyScreen({ navigation }) {
     const { session } = useAuth();
+    const { courses, setCourses } = useCourses();
     const [loading, setLoading] = useState(true);
-    const [courses, setCourses] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 
     const fetchCourses = async () => {
@@ -52,7 +46,7 @@ export default function AcademyScreen({ navigation }) {
     }, []);
 
     const renderCourseItem = ({ item }) => (
-        <TouchableOpacity style={styles.courseCard}>
+        <TouchableOpacity style={styles.courseCard} onPress={() => navigation.navigate('Course', { course: item })}>
             <View style={styles.courseImagePlaceholder}>
                 <BookOpen size={24} color="#3b82f6" />
             </View>
@@ -206,3 +200,10 @@ const styles = StyleSheet.create({
         color: '#94a3b8',
     }
 });
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+import { useCourses } from '../contexts/CoursesContext';
+import { supabase } from '../lib/supabase';
+import { BookOpen, Filter, Clock, ChevronRight } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';

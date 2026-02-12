@@ -7,7 +7,7 @@ import { updateProgress } from '../../lib/api';
 const { width } = Dimensions.get('window');
 
 export default function CoursePlayer({ course, onBack }) {
-  const [activeContent, setActiveContent] = useState(course.training_content?.[0] || null);
+  const [activeContent, setActiveContent] = useState(null);
 
   const handleComplete = async (contentId) => {
     try {
@@ -17,30 +17,42 @@ export default function CoursePlayer({ course, onBack }) {
     }
   };
 
-  const renderContent = () => {
-    if (!activeContent) return null;
-    if (activeContent.type === 'Video') {
-      return (
-        <Video
-          source={{ uri: activeContent.url }}
-          style={styles.video}
-          useNativeControls
-          resizeMode="contain"
-          onPlaybackStatusUpdate={(status) => {
-            if (status.didJustFinish) handleComplete(activeContent.id);
-          }}
-        />
-      );
-    }
+  if (activeContent) {
     return (
-      <WebView
-        originWhitelist={["*"]}
-        source={{ uri: activeContent.url }}
-        style={styles.pdf}
-      />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setActiveContent(null)}>
+            <Text style={styles.back}>Back</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.title}>{course.machine_name}</Text>
+            <Text style={styles.subtitle}>{course.location}</Text>
+          </View>
+        </View>
+        <View style={styles.playerBox}>
+          {activeContent.type === 'Video' ? (
+            <Video
+              source={{ uri: activeContent.url }}
+              style={styles.video}
+              useNativeControls
+              resizeMode="contain"
+              onPlaybackStatusUpdate={(status) => {
+                if (status.didJustFinish) handleComplete(activeContent.id);
+              }}
+            />
+          ) : (
+            <WebView
+              originWhitelist={["*"]}
+              source={{ uri: activeContent.url }}
+              style={styles.pdf}
+            />
+          )}
+        </View>
+      </View>
     );
-  };
+  }
 
+  // Show content list first
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -52,20 +64,16 @@ export default function CoursePlayer({ course, onBack }) {
           <Text style={styles.subtitle}>{course.location}</Text>
         </View>
       </View>
-
-      <View style={styles.playerBox}>{renderContent()}</View>
-
       <FlatList
         data={course.training_content}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => {
-          const isActive = activeContent?.id === item.id;
           const isLocked = index > 0 && course.training_content[index - 1]?.status !== 'completed';
           return (
             <TouchableOpacity
               disabled={isLocked}
               onPress={() => setActiveContent(item)}
-              style={[styles.moduleRow, isActive && styles.activeRow, isLocked && styles.locked]}
+              style={[styles.moduleRow, isLocked && styles.locked]}
             >
               <Text style={styles.moduleTitle}>{item.title}</Text>
               <Text style={styles.moduleMeta}>{item.type} • {item.duration ? Math.round(item.duration/60) + ' mins' : ''}</Text>

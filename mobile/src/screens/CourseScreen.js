@@ -1,44 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
-import { getMachineByQr } from '../lib/api';
+
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import CoursePlayer from './components/CoursePlayer';
 
-// Placeholder: you might want a list of assigned machines/courses for the user
-export default function CourseScreen() {
-  const [loading, setLoading] = useState(false);
-  const [course, setCourse] = useState(null);
-
-  // TODO: fetch assigned courses for logged-in user; for now we just show placeholder list
-  const mockCourses = [];
-
-  useEffect(() => {
-    // optionally load default course
-  }, []);
-
-  if (course) {
-    return <CoursePlayer course={course} onBack={() => setCourse(null)} />;
-  }
-
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" /></View>;
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My Training</Text>
-      {mockCourses.length === 0 && (
-        <Text style={styles.muted}>No assigned courses yet. Scan a QR to start.</Text>
-      )}
-      <FlatList
-        data={mockCourses}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => setCourse(item)}>
-            <Text style={styles.cardTitle}>{item.machine_name}</Text>
-            <Text style={styles.cardSub}>{item.location}</Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
-  );
+export default function CourseScreen({ route, navigation }) {
+  const { course } = route.params || {};
+  if (!course) return null;
+  return <CoursePlayer course={course} onBack={() => navigation.goBack()} />;
 }
 
 const styles = StyleSheet.create({
