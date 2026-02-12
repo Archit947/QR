@@ -44,12 +44,14 @@ const UserDashboard = () => {
         avatar: "https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=Worker"
     });
 
+    const [completedTrainings, setCompletedTrainings] = useState([]);
+
     useEffect(() => {
         const fetchDashboardData = async () => {
-            try {
-                if (!user) return;
-                setLoading(true);
+            if (!user) return;
+            setLoading(true);
 
+            try {
                 // 1. Fetch Profile
                 const { data: profile } = await supabase
                     .from('profiles')
@@ -66,13 +68,14 @@ const UserDashboard = () => {
                     });
                 }
 
-                // 2. Fetch Training Stats & Pending Trainings
+                // 2. Fetch Training Stats & Pending/Completed Trainings
                 const { data: progressData, error: progressError } = await supabase
                     .from('training_progress')
                     .select(`
                         id,
                         status,
                         content_id,
+                        completed_at,
                         training_content (
                             id,
                             title,
@@ -87,9 +90,18 @@ const UserDashboard = () => {
                 let completed = 0;
                 let started = 0;
                 const activeTrainings = [];
+                const finishedTrainings = [];
 
                 progressData.forEach(item => {
-                    if (item.status === 'completed') completed++;
+                    if (item.status === 'completed') {
+                        completed++;
+                        finishedTrainings.push({
+                            id: item.content_id,
+                            title: item.training_content?.title || "Unknown Training",
+                            type: item.training_content?.type || "Module",
+                            completedAt: item.completed_at ? new Date(item.completed_at).toLocaleDateString() : "Unknown Date",
+                        });
+                    }
                     if (item.status === 'started') {
                         started++;
                         activeTrainings.push({
@@ -115,6 +127,7 @@ const UserDashboard = () => {
                 });
 
                 setPendingTrainings(activeTrainings);
+                setCompletedTrainings(finishedTrainings);
 
                 // 3. Fetch Certificates
                 const { data: certData, error: certError } = await supabase
