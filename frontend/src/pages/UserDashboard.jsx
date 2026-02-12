@@ -11,11 +11,6 @@ import {
     Shield,
     Globe,
     LayoutGrid,
-    GraduationCap,
-    ClipboardList,
-    Play,
-    Settings,
-    ChevronRight,
     Clock,
     FileText
 } from 'lucide-react';
@@ -327,57 +322,65 @@ const UserDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans mb-20">
-            {/* Header Section */}
-            <div className="bg-[#1e3a8a] text-white pt-6 pb-24 px-6 rounded-b-[2rem] relative shadow-lg">
-                {/* Top Bar */}
-                <div className="flex justify-between items-center mb-8">
-                    <div className="flex items-center gap-3 opacity-90">
-                        <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-                            <QrCode className="w-5 h-5" />
-                        </div>
-                        <span className="font-bold tracking-wider text-sm">COMPANY LOGO</span>
-                    </div>
+        <div className="min-h-screen bg-white flex flex-col font-sans mb-20">
 
-                    <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full text-xs font-medium transition-colors backdrop-blur-sm">
-                        <Globe size={14} />
-                        <span>EN-US</span>
-                    </button>
-                </div>
-
-                {/* User Profile */}
-                {loading ? (
-                    <div className="flex items-center gap-4 animate-pulse">
-                        <div className="w-16 h-16 rounded-full bg-white/20"></div>
-                        <div className="space-y-2">
-                            <div className="h-4 w-32 bg-white/20 rounded"></div>
-                            <div className="h-3 w-24 bg-white/20 rounded"></div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <div className="w-16 h-16 rounded-full border-2 border-white/30 overflow-hidden bg-white/10">
-                                <img src={userProfile.avatar} alt="User" className="w-full h-full object-cover" />
+            {/* Conditional Header */}
+            {activeTab === 'overview' ? (
+                /* Overview Header (Blue) */
+                <div className="bg-[#1e3a8a] text-white pt-6 pb-24 px-6 rounded-b-[2rem] relative shadow-lg">
+                    {/* Top Bar */}
+                    <div className="flex justify-between items-center mb-8">
+                        <div className="flex items-center gap-3 opacity-90">
+                            <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                                <QrCode className="w-5 h-5" />
                             </div>
-                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 border-2 border-[#1e3a8a] rounded-full"></div>
+                            <span className="font-bold tracking-wider text-sm">COMPANY LOGO</span>
                         </div>
-                        <div>
-                            <h1 className="text-xl font-bold leading-tight">{userProfile.name}</h1>
-                            <p className="text-blue-200 text-xs mt-1 font-medium tracking-wide">
-                                {userProfile.role} • ID: {userProfile.id}
-                            </p>
-                        </div>
-                        {/* Sign Out (Subtle) */}
-                        <button onClick={handleSignOut} className="ml-auto text-white/50 hover:text-white">
-                            <LogOut size={18} />
+
+                        <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full text-xs font-medium transition-colors backdrop-blur-sm">
+                            <Globe size={14} />
+                            <span>EN-US</span>
                         </button>
                     </div>
-                )}
-            </div>
 
-            {/* Main Content Area - Negative Margin to overlap header */}
-            <div className="px-5 -mt-16 relative z-10 flex flex-col gap-6">
+                    {/* User Profile */}
+                    {loading ? (
+                        <div className="flex items-center gap-4 animate-pulse">
+                            <div className="w-16 h-16 rounded-full bg-white/20"></div>
+                            <div className="space-y-2">
+                                <div className="h-4 w-32 bg-white/20 rounded"></div>
+                                <div className="h-3 w-24 bg-white/20 rounded"></div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <div className="w-16 h-16 rounded-full border-2 border-white/30 overflow-hidden bg-white/10">
+                                    <img src={userProfile.avatar} alt="User" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 border-2 border-[#1e3a8a] rounded-full"></div>
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold leading-tight">{userProfile.name}</h1>
+                                <p className="text-blue-200 text-xs mt-1 font-medium tracking-wide">
+                                    {userProfile.role} • ID: {userProfile.id}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* Academy / Account / Log Header (White/Simple) */
+                <div className="bg-white pt-6 px-6 pb-2">
+                    <div className="flex justify-between items-center mb-6">
+                        {/* Status Bar Placeholder if needed, or just padding */}
+                    </div>
+                </div>
+            )}
+
+
+            {/* Main Content Area */}
+            <div className={`px-5 relative z-10 flex flex-col gap-6 ${activeTab === 'overview' ? '-mt-16' : 'mt-0'}`}>
 
                 {activeTab === 'overview' && (
                     <>
@@ -392,7 +395,7 @@ const UserDashboard = () => {
 
                             <div className="flex items-center justify-between px-2">
                                 {/* Circular Progress */}
-                                <div className="relative w-24 h-24 flex items-center justify-center">
+                                <div className="relative w-24 h-24 flex-shrink-0">
                                     <svg className="w-full h-full transform -rotate-90">
                                         <circle
                                             cx="48"
@@ -416,19 +419,26 @@ const UserDashboard = () => {
                                             strokeLinecap="round"
                                         />
                                     </svg>
-                                    <span className="absolute text-xl font-bold text-gray-800">{stats.progress}%</span>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span className="text-2xl font-bold text-[#1e3a8a]">{stats.progress}%</span>
+                                    </div>
                                 </div>
 
-                                <div className="h-12 w-px bg-gray-100 mx-4"></div>
-
-                                <div className="flex-1 flex justify-around text-center">
-                                    <div>
-                                        <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
-                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1">Completed</div>
+                                {/* Stats List */}
+                                <div className="space-y-3 ml-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        <div className="text-sm">
+                                            <span className="font-bold text-gray-900">{stats.completed}</span>
+                                            <span className="text-gray-500 ml-1">Completed</span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
-                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1">Assigned</div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-[#1e3a8a]"></div>
+                                        <div className="text-sm">
+                                            <span className="font-bold text-gray-900">{stats.assigned}</span>
+                                            <span className="text-gray-500 ml-1">Assigned</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -552,16 +562,18 @@ const UserDashboard = () => {
                 )}
 
                 {activeTab === 'academy' && (
-                    <div className="flex flex-col gap-6">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-800">Academy Courses</h2>
-                            {scanError && <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">{scanError}</span>}
+                    <div className="flex flex-col gap-6 pt-4">
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-[#0f172a] mb-1">Academy</h2>
+                            <p className="text-gray-500 text-sm">Explore your assigned training modules</p>
                         </div>
+
+                        {scanError && <span className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{scanError}</span>}
 
                         {loading ? (
                             <div className="space-y-4 animate-pulse">
-                                <div className="h-32 bg-white rounded-2xl"></div>
-                                <div className="h-32 bg-white rounded-2xl"></div>
+                                <div className="h-32 bg-gray-100 rounded-2xl"></div>
+                                <div className="h-32 bg-gray-100 rounded-2xl"></div>
                             </div>
                         ) : academyContent.length > 0 ? (
                             <div className="space-y-4">
@@ -595,17 +607,19 @@ const UserDashboard = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <BookOpen className="text-gray-300 w-8 h-8" />
+                            <div className="flex flex-col items-center justify-center mt-10 text-center">
+                                <div className="w-32 h-32 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                    <QrCode className="text-gray-400 w-12 h-12" strokeWidth={1.5} />
                                 </div>
-                                <h3 className="text-gray-900 font-bold mb-1">No Courses Found</h3>
-                                <p className="text-gray-500 text-sm mb-4">Scan a QR code to view training content.</p>
+                                <h3 className="text-[#0f172a] font-bold text-lg mb-2">No Machine Scanned</h3>
+                                <p className="text-gray-500 text-sm max-w-[250px] leading-relaxed mb-8">
+                                    Scan a QR code to view specific training lectures and safety guides.
+                                </p>
                                 <button
                                     onClick={() => setIsScanning(true)}
-                                    className="bg-[#1e3a8a] text-white px-6 py-2 rounded-full text-sm font-medium"
+                                    className="bg-[#1e3a8a] text-white px-8 py-3.5 rounded-xl text-sm font-semibold shadow-xl shadow-blue-900/10 hover:shadow-blue-900/20 transition-all flex items-center gap-2"
                                 >
-                                    Scan QR Code
+                                    <QrCode size={18} /> Scan QR Code
                                 </button>
                             </div>
                         )}
@@ -614,125 +628,161 @@ const UserDashboard = () => {
 
                 {/* Placeholders for other tabs */}
                 {activeTab === 'log' && (
-                    <div className="bg-white p-8 rounded-2xl text-center border border-gray-100 shadow-sm">
+                    <div className="bg-white p-8 rounded-2xl text-center border border-gray-100 shadow-sm mt-10">
                         <p className="text-gray-500">Log content coming soon.</p>
                     </div>
                 )}
+
                 {activeTab === 'account' && (
-                    <div className="flex flex-col gap-6">
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-20 h-20 rounded-full border-4 border-gray-50 overflow-hidden">
+                    <div className="flex flex-col pt-10 px-2">
+                        {/* Profile Header */}
+                        <div className="flex flex-col items-center mb-12">
+                            <div className="relative mb-4">
+                                <div className="w-28 h-28 rounded-full border-4 border-white shadow-xl overflow-hidden">
                                     <img src={userProfile.avatar} alt="Profile" className="w-full h-full object-cover" />
                                 </div>
-                                <div>
-                                    {isEditingProfile ? (
-                                        <div className="flex items-center gap-2">
+                                <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-[#1e3a8a] text-white p-2 rounded-full cursor-pointer shadow-md hover:bg-blue-900 transition-colors">
+                                    <Camera size={16} />
+                                </label>
+                                <input type="file" id="avatar-upload" className="hidden" />
+                            </div>
+
+                            {isEditingProfile ? (
+                                <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                                    <input
+                                        type="text"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                        className="text-center text-xl font-bold text-[#0f172a] border-b-2 border-blue-100 focus:border-[#1e3a8a] outline-none px-2 py-1 w-full bg-transparent"
+                                        placeholder="Full Name"
+                                        autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleUpdateProfile}
+                                            className="text-xs bg-[#1e3a8a] text-white px-4 py-1.5 rounded-full font-medium"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={() => setIsEditingProfile(false)}
+                                            className="text-xs bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full font-medium"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <h2 className="text-2xl font-bold text-[#0f172a] mb-1">{userProfile.name}</h2>
+                                    <p className="text-gray-500 text-xs font-bold tracking-widest uppercase mb-3">{userProfile.role}</p>
+                                    <span className="bg-gray-50 text-gray-500 text-xs font-medium px-4 py-1 rounded-full">
+                                        ID: {userProfile.id}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Menu List */}
+                        <div className="flex flex-col gap-4">
+                            {/* Edit Profile Button */}
+                            <button
+                                onClick={() => {
+                                    setNewName(userProfile.name);
+                                    setIsEditingProfile(true);
+                                    setAccountMessage({ type: "", text: "" }); // Clear messages
+                                }}
+                                className="flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-100 rounded-2xl transition-colors group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#1e3a8a] shadow-sm group-hover:scale-105 transition-transform">
+                                        <User size={20} />
+                                    </div>
+                                    <span className="font-semibold text-gray-900">Edit Profile</span>
+                                </div>
+                                <ChevronRight size={20} className="text-gray-400" />
+                            </button>
+
+                            {/* Change Password (Toggle) */}
+                            <div className="bg-gray-50/50 rounded-2xl overflow-hidden transition-all">
+                                <button
+                                    onClick={() => {
+                                        setPasswordForm(prev => ({ ...prev, show: !prev.show }));
+                                        setAccountMessage({ type: "", text: "" }); // Clear messages
+                                    }}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#1e3a8a] shadow-sm group-hover:scale-105 transition-transform">
+                                            <Shield size={20} />
+                                        </div>
+                                        <span className="font-semibold text-gray-900">Change Password</span>
+                                    </div>
+                                    <ChevronRight size={20} className={`text-gray-400 transition-transform ${passwordForm.show ? 'rotate-90' : ''}`} />
+                                </button>
+
+                                {passwordForm.show && (
+                                    <div className="p-4 pt-0">
+                                        <div className="bg-white p-4 rounded-xl border border-gray-100 space-y-3 mt-2">
+                                            {accountMessage.text && (
+                                                <p className={`text-xs p-2 rounded ${accountMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                                                    {accountMessage.text}
+                                                </p>
+                                            )}
                                             <input
-                                                type="text"
-                                                value={newName}
-                                                onChange={(e) => setNewName(e.target.value)}
-                                                className="border border-gray-300 rounded px-2 py-1 text-sm"
-                                                placeholder="Enter full name"
+                                                type="password"
+                                                placeholder="New Password"
+                                                className="w-full text-sm border-gray-200 rounded-lg p-2.5 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#1e3a8a]/20 outline-none transition-all"
+                                                value={passwordForm.newPassword}
+                                                onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                                            />
+                                            <input
+                                                type="password"
+                                                placeholder="Confirm Password"
+                                                className="w-full text-sm border-gray-200 rounded-lg p-2.5 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#1e3a8a]/20 outline-none transition-all"
+                                                value={passwordForm.confirmPassword}
+                                                onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
                                             />
                                             <button
-                                                onClick={handleUpdateProfile}
-                                                className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700"
+                                                onClick={handleChangePassword}
+                                                disabled={loading}
+                                                className="w-full bg-[#1e3a8a] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-900 transition-colors"
                                             >
-                                                Save
-                                            </button>
-                                            <button
-                                                onClick={() => setIsEditingProfile(false)}
-                                                className="text-gray-500 text-xs hover:text-gray-700"
-                                            >
-                                                Cancel
+                                                {loading ? 'Updating...' : 'Update Password'}
                                             </button>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <h2 className="text-xl font-bold text-gray-900">{userProfile.name}</h2>
-                                            <button
-                                                onClick={() => {
-                                                    setNewName(userProfile.name);
-                                                    setIsEditingProfile(true);
-                                                    setAccountMessage({ type: "", text: "" });
-                                                }}
-                                                className="text-blue-600 text-xs font-semibold hover:underline mt-1"
-                                            >
-                                                Edit Profile
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
-                                    <span className="text-gray-500 text-sm">Role</span>
-                                    <span className="font-semibold text-gray-800 text-sm">{userProfile.role}</span>
+                            {/* App Settings Placeholder */}
+                            <button className="flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-100 rounded-2xl transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#1e3a8a] shadow-sm group-hover:scale-105 transition-transform">
+                                        <Settings size={20} />
+                                    </div>
+                                    <span className="font-semibold text-gray-900">App Settings</span>
                                 </div>
-                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
-                                    <span className="text-gray-500 text-sm">User ID</span>
-                                    <span className="font-mono bg-gray-50 px-2 py-1 rounded text-gray-600 text-xs">{userProfile.id}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
-                                    <span className="text-gray-500 text-sm">Email</span>
-                                    <span className="font-medium text-gray-800 text-sm">{user?.email}</span>
-                                </div>
-                            </div>
-                        </div>
+                                <ChevronRight size={20} className="text-gray-400" />
+                            </button>
 
-                        {/* Change Password Section */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <Shield size={18} className="text-[#1e3a8a]" /> Security
-                            </h3>
-
-                            {accountMessage.text && (
-                                <div className={`p-3 rounded-lg text-sm mb-4 ${accountMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                                    {accountMessage.text}
-                                </div>
-                            )}
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">New Password</label>
-                                    <input
-                                        type="password"
-                                        value={passwordForm.newPassword}
-                                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                        placeholder="Min. 6 characters"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Confirm New Password</label>
-                                    <input
-                                        type="password"
-                                        value={passwordForm.confirmPassword}
-                                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
-                                        placeholder="Re-enter new password"
-                                    />
-                                </div>
+                            {/* Logout */}
+                            <div className="pt-8 mb-8">
                                 <button
-                                    onClick={handleChangePassword}
-                                    disabled={loading}
-                                    className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                    onClick={handleSignOut}
+                                    className="flex items-center gap-4 p-4 hover:bg-red-50 w-full rounded-2xl transition-colors group"
                                 >
-                                    {loading ? "Updating..." : "Update Password"}
+                                    <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 group-hover:bg-red-100 transition-colors">
+                                        <LogOut size={20} />
+                                    </div>
+                                    <span className="font-bold text-red-500">Logout</span>
                                 </button>
                             </div>
-                        </div>
 
-                        <button
-                            onClick={handleSignOut}
-                            className="w-full bg-red-50 text-red-600 py-3 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <LogOut size={18} /> Sign Out
-                        </button>
+                        </div>
                     </div>
                 )}
+
 
             </div>
 
@@ -766,11 +816,11 @@ const UserDashboard = () => {
                     onClick={() => setActiveTab('academy')}
                     className={`flex flex-col items-center gap-1 mb-3 ${activeTab === 'academy' ? 'text-[#1e3a8a]' : 'text-gray-400'}`}
                 >
-                    <GraduationCap size={24} strokeWidth={activeTab === 'academy' ? 2.5 : 2} />
+                    <BookOpen size={24} strokeWidth={activeTab === 'academy' ? 2.5 : 2} />
                     <span className="text-[10px] font-bold">ACADEMY</span>
                 </button>
 
-                {/* Floating Scan Button */}
+                {/* Scan Button (Floating) */}
                 <div className="relative -top-6">
                     <button
                         onClick={() => setIsScanning(true)}
