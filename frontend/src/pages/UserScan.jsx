@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { qrAPI, employeeAPI } from '../lib/apiService';
 import { useAuth } from '../lib/AuthContext';
 import { PlayCircle, FileText, CheckCircle, ArrowLeft, Award, Lock, LogOut } from 'lucide-react';
-import ReactPlayer from 'react-player';
 
 const UserScan = () => {
     const { qrId } = useParams();
@@ -15,6 +14,7 @@ const UserScan = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [completedAll, setCompletedAll] = useState(false);
+    const [videoError, setVideoError] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -138,29 +138,63 @@ const UserScan = () => {
             {activeContent && (
                 <div className="bg-black">
                     {activeContent.type === 'Video' ? (
-                        <div className="w-full aspect-video">
-                            <ReactPlayer
-                                url={activeContent.url}
-                                width="100%"
-                                height="100%"
-                                controls
-                                playing={false}
-                                playsinline
-                                config={{
-                                    file: {
-                                        attributes: {
-                                            controlsList: 'nodownload',
-                                            playsInline: true,
-                                            preload: 'metadata'
+                        <div className="w-full aspect-video bg-black flex items-center justify-center relative">
+                            {videoError ? (
+                                <div className="text-center p-6 text-white">
+                                    <p className="text-red-400 mb-2">⚠ Video failed to load</p>
+                                    <p className="text-xs text-gray-400 mb-4">{videoError}</p>
+                                    <button 
+                                        onClick={() => {
+                                            setVideoError(null);
+                                            window.location.reload();
+                                        }}
+                                        className="bg-blue-600 px-4 py-2 rounded text-sm"
+                                    >
+                                        Retry
+                                    </button>
+                                </div>
+                            ) : (
+                                <video
+                                    key={activeContent.url}
+                                    className="w-full h-full"
+                                    controls
+                                    playsInline
+                                    preload="metadata"
+                                    controlsList="nodownload"
+                                    poster=""
+                                    onEnded={() => markComplete(activeContent.id)}
+                                    onError={(e) => {
+                                        console.error('Video error:', e);
+                                        console.log('Video URL:', activeContent.url);
+                                        console.log('Error details:', e.target.error);
+                                        
+                                        let errorMsg = 'Unknown error';
+                                        if (e.target.error) {
+                                            switch (e.target.error.code) {
+                                                case 1:
+                                                    errorMsg = 'Video loading aborted';
+                                                    break;
+                                                case 2:
+                                                    errorMsg = 'Network error';
+                                                    break;
+                                                case 3:
+                                                    errorMsg = 'Video format not supported';
+                                                    break;
+                                                case 4:
+                                                    errorMsg = 'Video not found or access denied';
+                                                    break;
+                                            }
                                         }
-                                    }
-                                }}
-                                onEnded={() => markComplete(activeContent.id)}
-                                onError={(e) => {
-                                    console.error('Video error:', e);
-                                    console.log('Video URL:', activeContent.url);
-                                }}
-                            />
+                                        setVideoError(errorMsg);
+                                    }}
+                                    onLoadStart={() => setVideoError(null)}
+                                >
+                                    <source src={activeContent.url} type="video/mp4" />
+                                    <source src={activeContent.url} type="video/webm" />
+                                    <source src={activeContent.url} type="video/ogg" />
+                                    Your browser does not support the video tag.
+                                </video>
+                            )}
                         </div>
                     ) : (
                         <div className="w-full bg-white p-4">
@@ -184,6 +218,21 @@ const UserScan = () => {
                         <p className="text-sm text-gray-600 mt-1">
                             {activeContent.type} • {formatDuration(activeContent.duration)}
                         </p>
+                        {/* Debug info - remove in production */}
+                        <details className="mt-2">
+                            <summary className="text-xs text-gray-400 cursor-pointer">Video URL (debug)</summary>
+                            <p className="text-xs text-gray-500 mt-1 break-all font-mono bg-gray-50 p-2 rounded">
+                                {activeContent.url}
+                            </p>
+                            <a 
+                                href={activeContent.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                            >
+                                Open in new tab to test
+                            </a>
+                        </details>
                     </div>
                 </div>
             )}
@@ -239,7 +288,12 @@ const UserScan = () => {
                         return (
                             <div 
                                 key={content.id}
-                                onClick={() => !isLocked && setActiveContent(content)}
+                                onClick={() => {
+                                    if (!isLocked) {
+                                        setVideoError(null);
+                                        setActiveContent(content);
+                                    }
+                                }}
                                 className={`
                                     flex items-center gap-3 p-4 border-b border-gray-100 transition-colors
                                     ${isActive ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''}

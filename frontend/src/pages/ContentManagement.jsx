@@ -189,10 +189,16 @@ const ContentManagement = () => {
 
         if (error) throw error;
 
-        // Construct public URL directly (more reliable than getPublicUrl)
-        const publicUrl = `https://umdkelzysoumnffzqsrn.supabase.co/storage/v1/object/public/Training/${filePath}`;
+        // Get public URL using Supabase method (more reliable)
+        const { data: urlData } = supabase.storage
+            .from('Training')
+            .getPublicUrl(filePath);
 
-        return publicUrl;
+        if (!urlData || !urlData.publicUrl) {
+            throw new Error('Failed to generate public URL');
+        }
+
+        return urlData.publicUrl;
     };
 
     const handleUpload = async (e) => {
