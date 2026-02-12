@@ -112,114 +112,33 @@ const UserScan = () => {
     if (!machineData) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-slate-900 text-white p-6 rounded-b-3xl shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-bl-full -mr-10 -mt-10"></div>
-                
-                <div className="flex justify-between items-start relative z-10">
-                    <div>
-                        <h1 className="text-2xl font-bold">{machineData.machine_name}</h1>
-                        <p className="text-slate-400 text-sm mt-1">{machineData.location}</p>
+            <div className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-40">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => activeContent ? setActiveContent(null) : navigate('/user/dashboard')}
+                            className="text-slate-400 hover:text-white"
+                        >
+                            <ArrowLeft size={20} />
+                        </button>
+                        <div>
+                            <h1 className="text-lg font-bold">{machineData.machine_name}</h1>
+                            <p className="text-slate-400 text-xs">{machineData.location}</p>
+                        </div>
                     </div>
-                    <button onClick={handleSignOut} className="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-lg">
+                    <button onClick={handleSignOut} className="text-slate-400 hover:text-white">
                         <LogOut size={18} />
                     </button>
                 </div>
-
-                {/* Progress Bar */}
-                <div className="mt-6">
-                    <div className="flex justify-between text-xs text-slate-400 mb-2">
-                        <span>Training Progress</span>
-                        <span>{completedAll ? '100%' : 'In Progress'}</span>
-                    </div>
-                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div 
-                            className="h-full bg-blue-500 transition-all duration-500"
-                            style={{ 
-                                width: machineData.training_content?.length 
-                                    ? `${(Object.values(progressMap).filter(s => s === 'completed').length / machineData.training_content.length) * 100}%` 
-                                    : '0%' 
-                            }}
-                        ></div>
-                    </div>
-                </div>
             </div>
 
-            {/* Completion Certificate Banner */}
-            {completedAll && (
-                <div className="mx-4 mt-6 p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white shadow-lg animate-fade-in flex items-center gap-4">
-                    <div className="bg-white/20 p-2 rounded-lg">
-                        <Award size={24} className="text-white" />
-                    </div>
-                    <div>
-                        <p className="font-bold">You are certified!</p>
-                        <p className="text-xs text-green-100">You can now operate this machine safely.</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Content List */}
-            <div className="p-4 space-y-4">
-                <h3 className="font-bold text-gray-800 text-lg px-2">Training Modules</h3>
-                
-                {machineData.training_content?.map((content, idx) => {
-                    const isCompleted = progressMap[content.id] === 'completed';
-                    const isLocked = idx > 0 && progressMap[machineData.training_content[idx - 1].id] !== 'completed'; // Sequential lock
-
-                    return (
-                        <div 
-                            key={content.id}
-                            onClick={() => !isLocked && setActiveContent(content)}
-                            className={`
-                                relative p-4 rounded-xl border transition-all duration-200
-                                ${isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100 shadow-sm'}
-                                ${isLocked ? 'opacity-60 cursor-not-allowed grayscale' : 'hover:shadow-md cursor-pointer active:scale-[0.99]'}
-                            `}
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className={`
-                                    w-12 h-12 rounded-xl flex items-center justify-center shrink-0
-                                    ${isCompleted ? 'bg-green-100 text-green-600' : 'bg-blue-50 text-blue-600'}
-                                `}>
-                                    {content.type === 'Video' ? <PlayCircle size={24} /> : <FileText size={24} />}
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className={`font-semibold ${isCompleted ? 'text-green-800' : 'text-gray-800'}`}>
-                                        {content.title}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 mt-1">{content.type} • {formatDuration(content.duration)}</p>
-                                </div>
-                                <div>
-                                    {isCompleted ? (
-                                        <CheckCircle className="text-green-500" size={24} />
-                                    ) : isLocked ? (
-                                        <Lock className="text-gray-300" size={20} />
-                                    ) : (
-                                        <div className="w-6 h-6 rounded-full border-2 border-gray-200"></div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Active Content Modal / Viewer */}
+            {/* Video Player Section - Only shown when content is active */}
             {activeContent && (
-                <div className="fixed inset-0 z-50 bg-black/90 flex flex-col pt-10 animate-fade-in">
-                    <div className="flex justify-between items-center px-4 mb-4 text-white">
-                        <button 
-                            onClick={() => setActiveContent(null)}
-                            className="flex items-center gap-2 text-sm text-gray-300 hover:text-white"
-                        >
-                            <ArrowLeft size={20} /> Back to List
-                        </button>
-                        <h3 className="font-semibold text-lg truncate max-w-[200px]">{activeContent.title}</h3>
-                    </div>
-
-                    <div className="flex-1 bg-black flex items-center justify-center relative">
-                        {activeContent.type === 'Video' ? (
+                <div className="bg-black">
+                    {activeContent.type === 'Video' ? (
+                        <div className="w-full aspect-video">
                             <ReactPlayer
                                 url={activeContent.url}
                                 width="100%"
@@ -242,24 +161,130 @@ const UserScan = () => {
                                     console.log('Video URL:', activeContent.url);
                                 }}
                             />
-                        ) : (
-                            <div className="w-full h-full bg-white text-black p-4 overflow-auto">
-                                <div className="max-w-3xl mx-auto py-10">
-                                    <h2 className="text-2xl font-bold mb-4">{activeContent.title}</h2>
-                                    <p className="text-gray-600 mb-8">Please read the following document carefully.</p>
-                                    <iframe src={activeContent.url} className="w-full h-[60vh] border rounded-lg" title="PDF Viewer" />
-                                    <button 
-                                        onClick={() => markComplete(activeContent.id)}
-                                        className="mt-8 w-full bg-blue-600 text-white py-4 rounded-xl font-bold"
-                                    >
-                                        I have read and understood this document
-                                    </button>
-                                </div>
+                        </div>
+                    ) : (
+                        <div className="w-full bg-white p-4">
+                            <div className="max-w-4xl mx-auto">
+                                <h2 className="text-2xl font-bold mb-4 text-gray-800">{activeContent.title}</h2>
+                                <p className="text-gray-600 mb-4">Please read the following document carefully.</p>
+                                <iframe src={activeContent.url} className="w-full h-[70vh] border rounded-lg" title="PDF Viewer" />
+                                <button 
+                                    onClick={() => markComplete(activeContent.id)}
+                                    className="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700"
+                                >
+                                    I have read and understood this document
+                                </button>
                             </div>
-                        )}
+                        </div>
+                    )}
+                    
+                    {/* Video Title and Info */}
+                    <div className="bg-white border-b border-gray-200 p-4">
+                        <h2 className="text-xl font-bold text-gray-800">{activeContent.title}</h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {activeContent.type} • {formatDuration(activeContent.duration)}
+                        </p>
                     </div>
                 </div>
             )}
+
+            {/* Content List - Always visible */}
+            <div className="bg-white">
+                {/* Progress Bar */}
+                <div className="p-4 border-b border-gray-200">
+                    <div className="flex justify-between text-xs text-gray-600 mb-2">
+                        <span className="font-medium">Training Progress</span>
+                        <span className="font-semibold text-blue-600">
+                            {machineData.training_content?.length 
+                                ? `${Object.values(progressMap).filter(s => s === 'completed').length}/${machineData.training_content.length} completed`
+                                : '0/0'}
+                        </span>
+                    </div>
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-blue-600 transition-all duration-500"
+                            style={{ 
+                                width: machineData.training_content?.length 
+                                    ? `${(Object.values(progressMap).filter(s => s === 'completed').length / machineData.training_content.length) * 100}%` 
+                                    : '0%' 
+                            }}
+                        ></div>
+                    </div>
+                </div>
+
+                {/* Completion Certificate Banner */}
+                {completedAll && (
+                    <div className="mx-4 my-4 p-4 bg-gradient-to-r from-green-500 to-green-600 rounded-xl text-white shadow-lg flex items-center gap-4">
+                        <div className="bg-white/20 p-2 rounded-lg">
+                            <Award size={24} className="text-white" />
+                        </div>
+                        <div>
+                            <p className="font-bold">You are certified!</p>
+                            <p className="text-xs text-green-100">You can now operate this machine safely.</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Training Modules List */}
+                <div className="pb-6">
+                    <h3 className="font-bold text-gray-800 px-4 py-3 text-sm border-b border-gray-200 bg-gray-50">
+                        Training Modules
+                    </h3>
+                    
+                    {machineData.training_content?.map((content, idx) => {
+                        const isCompleted = progressMap[content.id] === 'completed';
+                        const isLocked = idx > 0 && progressMap[machineData.training_content[idx - 1].id] !== 'completed';
+                        const isActive = activeContent?.id === content.id;
+
+                        return (
+                            <div 
+                                key={content.id}
+                                onClick={() => !isLocked && setActiveContent(content)}
+                                className={`
+                                    flex items-center gap-3 p-4 border-b border-gray-100 transition-colors
+                                    ${isActive ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''}
+                                    ${isLocked ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}
+                                `}
+                            >
+                                {/* Number Badge */}
+                                <div className={`
+                                    w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0
+                                    ${isActive ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}
+                                `}>
+                                    {idx + 1}
+                                </div>
+
+                                {/* Icon */}
+                                <div className={`
+                                    shrink-0
+                                    ${isCompleted ? 'text-green-600' : isActive ? 'text-blue-600' : 'text-gray-400'}
+                                `}>
+                                    {content.type === 'Video' ? <PlayCircle size={20} /> : <FileText size={20} />}
+                                </div>
+
+                                {/* Content Info */}
+                                <div className="flex-1 min-w-0">
+                                    <h4 className={`font-medium text-sm truncate ${isActive ? 'text-blue-900' : 'text-gray-800'}`}>
+                                        {content.title}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        {content.type} • {formatDuration(content.duration)}
+                                    </p>
+                                </div>
+
+                                {/* Status Icon */}
+                                <div className="shrink-0">
+                                    {isCompleted ? (
+                                        <CheckCircle className="text-green-600" size={20} />
+                                    ) : isLocked ? (
+                                        <Lock className="text-gray-300" size={18} />
+                                    ) : null}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 };
