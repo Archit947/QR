@@ -11,6 +11,10 @@ import {
     Shield,
     Globe,
     LayoutGrid,
+    ClipboardList,
+    Play,
+    Settings,
+    ChevronRight,
     Clock,
     FileText
 } from 'lucide-react';
