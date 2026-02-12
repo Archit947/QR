@@ -180,9 +180,65 @@ const UserDashboard = () => {
     const [academyContent, setAcademyContent] = useState([]);
     const [scanError, setScanError] = useState(null);
 
+    // Account Management State
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [newName, setNewName] = useState("");
+    const [passwordForm, setPasswordForm] = useState({ newPassword: "", confirmPassword: "" });
+    const [accountMessage, setAccountMessage] = useState({ type: "", text: "" });
+
     // ... (existing useEffect for dashboard data)
 
     // ... (existing handleSignOut)
+
+    const handleUpdateProfile = async () => {
+        if (!newName.trim()) {
+            setAccountMessage({ type: "error", text: "Name cannot be empty." });
+            return;
+        }
+        setLoading(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ full_name: newName })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            setUserProfile(prev => ({ ...prev, name: newName }));
+            setAccountMessage({ type: "success", text: "Profile updated successfully." });
+            setIsEditingProfile(false);
+        } catch (error) {
+            console.error("Error updating profile:", error);
+            setAccountMessage({ type: "error", text: "Failed to update profile." });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleChangePassword = async () => {
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            setAccountMessage({ type: "error", text: "Passwords do not match." });
+            return;
+        }
+        if (passwordForm.newPassword.length < 6) {
+            setAccountMessage({ type: "error", text: "Password must be at least 6 characters." });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: passwordForm.newPassword });
+            if (error) throw error;
+
+            setAccountMessage({ type: "success", text: "Password updated successfully." });
+            setPasswordForm({ newPassword: "", confirmPassword: "" });
+        } catch (error) {
+            console.error("Error updating password:", error);
+            setAccountMessage({ type: "error", text: "Failed to update password." });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // ... (existing useEffect for scanner)
 
@@ -557,9 +613,124 @@ const UserDashboard = () => {
                 )}
 
                 {/* Placeholders for other tabs */}
-                {(activeTab === 'log' || activeTab === 'account') && (
+                {activeTab === 'log' && (
                     <div className="bg-white p-8 rounded-2xl text-center border border-gray-100 shadow-sm">
-                        <p className="text-gray-500">Feature coming soon.</p>
+                        <p className="text-gray-500">Log content coming soon.</p>
+                    </div>
+                )}
+                {activeTab === 'account' && (
+                    <div className="flex flex-col gap-6">
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-20 h-20 rounded-full border-4 border-gray-50 overflow-hidden">
+                                    <img src={userProfile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                    {isEditingProfile ? (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={newName}
+                                                onChange={(e) => setNewName(e.target.value)}
+                                                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                                placeholder="Enter full name"
+                                            />
+                                            <button
+                                                onClick={handleUpdateProfile}
+                                                className="bg-blue-600 text-white text-xs px-3 py-1.5 rounded hover:bg-blue-700"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={() => setIsEditingProfile(false)}
+                                                className="text-gray-500 text-xs hover:text-gray-700"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <h2 className="text-xl font-bold text-gray-900">{userProfile.name}</h2>
+                                            <button
+                                                onClick={() => {
+                                                    setNewName(userProfile.name);
+                                                    setIsEditingProfile(true);
+                                                    setAccountMessage({ type: "", text: "" });
+                                                }}
+                                                className="text-blue-600 text-xs font-semibold hover:underline mt-1"
+                                            >
+                                                Edit Profile
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-500 text-sm">Role</span>
+                                    <span className="font-semibold text-gray-800 text-sm">{userProfile.role}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-500 text-sm">User ID</span>
+                                    <span className="font-mono bg-gray-50 px-2 py-1 rounded text-gray-600 text-xs">{userProfile.id}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                    <span className="text-gray-500 text-sm">Email</span>
+                                    <span className="font-medium text-gray-800 text-sm">{user?.email}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Change Password Section */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <Shield size={18} className="text-[#1e3a8a]" /> Security
+                            </h3>
+
+                            {accountMessage.text && (
+                                <div className={`p-3 rounded-lg text-sm mb-4 ${accountMessage.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                                    {accountMessage.text}
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">New Password</label>
+                                    <input
+                                        type="password"
+                                        value={passwordForm.newPassword}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        placeholder="Min. 6 characters"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 mb-1">Confirm New Password</label>
+                                    <input
+                                        type="password"
+                                        value={passwordForm.confirmPassword}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                        placeholder="Re-enter new password"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleChangePassword}
+                                    disabled={loading}
+                                    className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                >
+                                    {loading ? "Updating..." : "Update Password"}
+                                </button>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleSignOut}
+                            className="w-full bg-red-50 text-red-600 py-3 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <LogOut size={18} /> Sign Out
+                        </button>
                     </div>
                 )}
 
