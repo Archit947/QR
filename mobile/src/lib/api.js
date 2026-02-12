@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://your-backend/api';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.28:5000/api';
 
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
