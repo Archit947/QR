@@ -29,51 +29,120 @@ const UserDashboard = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'academy' | 'scan' | 'log' | 'account'
 
-    // Mock Data for UI
-    const userData = {
-        name: user?.user_metadata?.full_name || "Mateo Rodriguez",
-        role: "MAINTENANCE TECHNICIAN",
-        id: "8829",
-        avatar: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
-    };
-
-    const stats = {
+    const [stats, setStats] = useState({
         activePeriod: "Q3",
-        completed: 12,
-        assigned: 3,
-        progress: 85
-    };
+        completed: 0,
+        assigned: 0,
+        progress: 0
+    });
+    const [pendingTrainings, setPendingTrainings] = useState([]);
+    const [certifications, setCertifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [userProfile, setUserProfile] = useState({
+        name: user?.email?.split('@')[0] || "Worker",
+        role: "EMPLOYEE",
+        id: "---",
+        avatar: "https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=Worker"
+    });
 
-    const pendingTrainings = [
-        {
-            id: 1,
-            title: "Safety: Heavy Machinery II",
-            duration: "20m",
-            type: "Video & Assessment",
-            status: "REQUIRED",
-            icon: Settings
-        },
-        {
-            id: 2,
-            title: "Hydraulic Systems Lvl 1",
-            progress: 30,
-            status: "IN PROGRESS",
-            icon: Settings // Using Settings for placeholder generic machinery icon
-        }
-    ];
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                if (!user) return;
+                setLoading(true);
 
-    const certifications = [
-        {
-            id: 1,
-            title: "Forklift Operator",
-            expires: "Oct 2024"
-        },
-        {
-            id: 2,
-            title: "Fire Safety Basic",
-            expires: "No Expiration"
-        }
-    ];
+                // 1. Fetch Profile
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    setUserProfile({
+                        name: profile.full_name || user.email.split('@')[0],
+                        role: profile.role ? profile.role.toUpperCase() : "EMPLOYEE",
+                        id: profile.id.substring(0, 4).toUpperCase(), // Short ID for display
+                        avatar: `https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=${profile.full_name || 'Worker'}`
+                    });
+                }
+
+                // 2. Fetch Training Stats & Pending Trainings
+                const { data: progressData, error: progressError } = await supabase
+                    .from('training_progress')
+                    .select(`
+                        id,
+                        status,
+                        content_id,
+                        training_content (
+                            id,
+                            title,
+                            type,
+                            duration: type 
+                        )
+                    `)
+                    .eq('user_id', user.id);
+
+                if (progressError) throw progressError;
+
+                let completed = 0;
+                let started = 0;
+                const activeTrainings = [];
+
+                progressData.forEach(item => {
+                    if (item.status === 'completed') completed++;
+                    if (item.status === 'started') {
+                        started++;
+                        activeTrainings.push({
+                            id: item.content_id,
+                            title: item.training_content?.title || "Unknown Training",
+                            duration: "20m", // Placeholder as schema doesn't have duration
+                            type: item.training_content?.type || "Module",
+                            status: "IN PROGRESS",
+                            progress: 30, // Placeholder, usually needs column for %
+                            icon: Settings
+                        });
+                    }
+                });
+
+                const total = completed + started;
+                const progressPercentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                setStats({
+                    activePeriod: "Q1", // Dynamic if available
+                    completed,
+                    assigned: total,
+                    progress: progressPercentage
+                });
+
+                setPendingTrainings(activeTrainings);
+
+                // 3. Fetch Certificates
+                const { data: certData, error: certError } = await supabase
+                    .from('certificates')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('issued_at', { ascending: false });
+
+                if (certError) throw certError;
+
+                const mappedCerts = certData.map(c => ({
+                    id: c.id,
+                    title: c.course_name,
+                    expires: c.expiry_date ? new Date(c.expiry_date).toLocaleDateString() : "No Expiration"
+                }));
+
+                setCertifications(mappedCerts);
+
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, [user]);
 
 
     const handleSignOut = async () => {
@@ -144,25 +213,34 @@ const UserDashboard = () => {
                 </div>
 
                 {/* User Profile */}
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <div className="w-16 h-16 rounded-full border-2 border-white/30 overflow-hidden bg-white/10">
-                            <img src={userData.avatar} alt="User" className="w-full h-full object-cover" />
+                {loading ? (
+                    <div className="flex items-center gap-4 animate-pulse">
+                        <div className="w-16 h-16 rounded-full bg-white/20"></div>
+                        <div className="space-y-2">
+                            <div className="h-4 w-32 bg-white/20 rounded"></div>
+                            <div className="h-3 w-24 bg-white/20 rounded"></div>
                         </div>
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 border-2 border-[#1e3a8a] rounded-full"></div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold leading-tight">{userData.name}</h1>
-                        <p className="text-blue-200 text-xs mt-1 font-medium tracking-wide">
-                            {userData.role} • ID: {userData.id}
-                        </p>
+                ) : (
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <div className="w-16 h-16 rounded-full border-2 border-white/30 overflow-hidden bg-white/10">
+                                <img src={userProfile.avatar} alt="User" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-400 border-2 border-[#1e3a8a] rounded-full"></div>
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold leading-tight">{userProfile.name}</h1>
+                            <p className="text-blue-200 text-xs mt-1 font-medium tracking-wide">
+                                {userProfile.role} • ID: {userProfile.id}
+                            </p>
+                        </div>
+                        {/* Sign Out (Subtle) */}
+                        <button onClick={handleSignOut} className="ml-auto text-white/50 hover:text-white">
+                            <LogOut size={18} />
+                        </button>
                     </div>
-
-                    {/* Sign Out (Subtle) */}
-                    <button onClick={handleSignOut} className="ml-auto text-white/50 hover:text-white">
-                        <LogOut size={18} />
-                    </button>
-                </div>
+                )}
             </div>
 
             {/* Main Content Area - Negative Margin to overlap header */}
@@ -233,70 +311,71 @@ const UserDashboard = () => {
                     </div>
 
                     <div className="space-y-4">
-                        {/* Training Card 1 (Required) */}
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex gap-4">
-                                    <div className="bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center">
-                                        <Settings className="text-gray-600 w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 text-sm mb-1">{pendingTrainings[0].title}</h4>
-                                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                                            <div className="flex items-center gap-1">
-                                                <Clock size={12} />
-                                                {pendingTrainings[0].duration}
+                        {loading ? (
+                            <div className="space-y-4">
+                                <div className="h-24 bg-white rounded-2xl animate-pulse"></div>
+                                <div className="h-24 bg-white rounded-2xl animate-pulse"></div>
+                            </div>
+                        ) : pendingTrainings.length === 0 ? (
+                            <div className="bg-white p-6 rounded-2xl text-center text-gray-500 shadow-sm border border-gray-100">
+                                <p>No pending trainings.</p>
+                                <button onClick={() => setActiveTab('academy')} className="mt-2 text-blue-600 font-semibold text-sm hover:underline">Browse Catalog</button>
+                            </div>
+                        ) : (
+                            pendingTrainings.map((training) => (
+                                <div key={training.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex gap-4 items-center">
+                                            <div className="bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center">
+                                                <Settings className="text-gray-600 w-6 h-6" />
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                                <FileText size={12} />
-                                                {pendingTrainings[0].type}
+                                            <div>
+                                                <h4 className="font-bold text-gray-900 text-sm mb-1">{training.title}</h4>
+                                                {training.status === 'IN PROGRESS' ? (
+                                                    <>
+                                                        <div className="w-32 h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+                                                            <div className="h-full bg-[#1e3a8a] w-[30%] rounded-full"></div>
+                                                        </div>
+                                                        <div className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wide">
+                                                            Progress: 30%
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                                        <div className="flex items-center gap-1">
+                                                            <Clock size={12} /> 20m
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <FileText size={12} /> {training.type}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
+                                        <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold px-2 py-0.5 rounded">
+                                            {training.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-end mt-2">
+                                        {training.status === 'IN PROGRESS' ? (
+                                            <button className="text-[#1e3a8a] font-bold text-sm flex items-center gap-1 hover:underline">
+                                                Resume <Play size={16} fill="currentColor" />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    // Assuming start logic, for now open scanner or navigate
+                                                    setIsScanning(true)
+                                                }}
+                                                className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                Initialize Session <ChevronRight size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                <span className="bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-bold px-2 py-1 rounded">
-                                    {pendingTrainings[0].status}
-                                </span>
-                            </div>
-                            <button
-                                onClick={() => setIsScanning(true)} // Example action
-                                className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors flex items-center justify-center gap-2"
-                            >
-                                Initialize Session <ChevronRight size={16} />
-                            </button>
-                        </div>
-
-                        {/* Training Card 2 (In Progress) */}
-                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex gap-4 items-center">
-                                    <div className="bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center">
-                                        <div className="flex gap-0.5">
-                                            <div className="w-1 h-3 bg-gray-400 rounded-full"></div>
-                                            <div className="w-1 h-4 bg-gray-600 rounded-full"></div>
-                                            <div className="w-1 h-2 bg-gray-400 rounded-full"></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 text-sm mb-1">{pendingTrainings[1].title}</h4>
-                                        <div className="w-32 h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-[#1e3a8a] w-[30%] rounded-full"></div>
-                                        </div>
-                                        <div className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wide">
-                                            Progress: {pendingTrainings[1].progress}%
-                                        </div>
-                                    </div>
-                                </div>
-                                <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold px-2 py-0.5 rounded">
-                                    {pendingTrainings[1].status}
-                                </span>
-                            </div>
-                            <div className="flex justify-end mt-2">
-                                <button className="text-[#1e3a8a] font-bold text-sm flex items-center gap-1 hover:underline">
-                                    Resume <Play size={16} fill="currentColor" />
-                                </button>
-                            </div>
-                        </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -305,24 +384,35 @@ const UserDashboard = () => {
                     <h3 className="text-sm font-bold text-gray-800 uppercase mb-4 px-1">
                         Recent Certifications
                     </h3>
-                    <div className="flex gap-4 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar">
-                        {certifications.map(cert => (
-                            <div key={cert.id} className="min-w-[200px] bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <div className="relative">
-                                        <div className="w-6 h-8 bg-gray-200 rounded-sm"></div>
-                                        <div className="absolute -bottom-1 -right-1 bg-[#1e3a8a] text-white rounded-full p-0.5">
-                                            <CheckCircle size={10} />
+                    {loading ? (
+                        <div className="flex gap-4">
+                            <div className="w-48 h-20 bg-white rounded-xl animate-pulse"></div>
+                            <div className="w-48 h-20 bg-white rounded-xl animate-pulse"></div>
+                        </div>
+                    ) : certifications.length === 0 ? (
+                        <div className="text-gray-500 text-sm px-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                            No certifications yet. Complete a course to earn one!
+                        </div>
+                    ) : (
+                        <div className="flex gap-4 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar">
+                            {certifications.map(cert => (
+                                <div key={cert.id} className="min-w-[200px] bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <div className="relative">
+                                            <div className="w-6 h-8 bg-gray-200 rounded-sm"></div>
+                                            <div className="absolute -bottom-1 -right-1 bg-[#1e3a8a] text-white rounded-full p-0.5">
+                                                <CheckCircle size={10} />
+                                            </div>
                                         </div>
                                     </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900 text-sm leading-tight">{cert.title}</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5">Expires {cert.expires}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="font-bold text-gray-900 text-sm leading-tight">{cert.title}</p>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">Expires {cert.expires}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
             </div>
