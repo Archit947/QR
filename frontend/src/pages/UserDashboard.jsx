@@ -177,6 +177,11 @@ const UserDashboard = () => {
                     );
                 } catch (err) {
                     console.error("Error starting scanner", err);
+                    if (err.name === 'NotAllowedError') {
+                        setScanError("Camera permission denied. Please allow camera access in your browser settings.");
+                    } else {
+                        setScanError("Failed to start scanner. Please try again.");
+                    }
                     setIsScanning(false);
                 }
             };
@@ -814,7 +819,11 @@ const UserDashboard = () => {
                     </div>
                     <div id="reader" className="flex-1 w-full bg-black"></div>
                     <div className="p-6 bg-black text-white text-center pb-20">
-                        <p className="text-sm text-gray-400">Point your camera at a training QR code</p>
+                        {scanError ? (
+                            <p className="text-red-400 font-medium">{scanError}</p>
+                        ) : (
+                            <p className="text-sm text-gray-400">Point your camera at a training QR code</p>
+                        )}
                     </div>
                 </div>
             )}
