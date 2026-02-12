@@ -196,6 +196,45 @@ const UserDashboard = () => {
 
     const [academyContent, setAcademyContent] = useState([]);
     const [scanError, setScanError] = useState(null);
+    const [lastScannedQrId, setLastScannedQrId] = useState(null);
+
+    // Persistence Logic: Load from localStorage on mount
+    useEffect(() => {
+        const savedAcademy = localStorage.getItem('academyContent');
+        const savedQrId = localStorage.getItem('lastScannedQrId');
+        const savedTab = localStorage.getItem('activeTab');
+
+        if (savedAcademy) {
+            try {
+                setAcademyContent(JSON.parse(savedAcademy));
+            } catch (e) {
+                console.error("Failed to parse saved academy content", e);
+            }
+        }
+        if (savedQrId) setLastScannedQrId(savedQrId);
+        if (savedTab) setActiveTab(savedTab);
+    }, []);
+
+    // Persistence Logic: Save to localStorage when state changes
+    useEffect(() => {
+        if (academyContent.length > 0) {
+            localStorage.setItem('academyContent', JSON.stringify(academyContent));
+        } else {
+            localStorage.removeItem('academyContent');
+        }
+    }, [academyContent]);
+
+    useEffect(() => {
+        if (lastScannedQrId) {
+            localStorage.setItem('lastScannedQrId', lastScannedQrId);
+        } else {
+            localStorage.removeItem('lastScannedQrId');
+        }
+    }, [lastScannedQrId]);
+
+    useEffect(() => {
+        localStorage.setItem('activeTab', activeTab);
+    }, [activeTab]);
 
     // Account Management State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -332,6 +371,7 @@ const UserDashboard = () => {
             }));
 
             setAcademyContent(formattedCourses);
+            setLastScannedQrId(qrId);
             setActiveTab('academy');
 
         } catch (error) {
@@ -622,7 +662,10 @@ const UserDashboard = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <button className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors mt-2">
+                                        <button
+                                            onClick={() => navigate(`/scan/${lastScannedQrId}`)}
+                                            className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors mt-2"
+                                        >
                                             Start Training
                                         </button>
                                     </div>

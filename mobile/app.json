@@ -20,6 +20,11 @@
     "plugins": [
       "expo-barcode-scanner",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "EXPO_PUBLIC_API_URL": "https://qr-ulie.vercel.app/api",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://umdkelzysoumnffzqsrn.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtZGtlbHp5c291bW5mZnpxc3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3OTE1MTcsImV4cCI6MjA4NjM2NzUxN30.UQm7cV-gMSXaGly6Xp3C1pH4pWTRqgQlrMQfzyDdCk0"
+    }
   }
 }

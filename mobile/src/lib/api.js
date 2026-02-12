@@ -1,6 +1,8 @@
-import { supabase } from './supabase';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.28:5000/api';
+import { supabase } from './supabase';
+import Constants from 'expo-constants';
+
+const API_BASE = (Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || Constants.manifest?.extra?.EXPO_PUBLIC_API_URL) || 'http://192.168.1.28:5000/api';
 
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import { Camera, CameraView } from 'expo-camera';
 import { getMachineByQr } from '../lib/api';
 import CoursePlayer from './components/CoursePlayer';
 
@@ -8,25 +8,34 @@ export default function ScanScreen() {
   const [hasPermission, setHasPermission] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeCourse, setActiveCourse] = useState(null);
+  const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
   }, []);
 
   const handleScan = async ({ data }) => {
-    if (loading) return;
+    if (loading || scanned) return;
+    setScanned(true);
     try {
       setLoading(true);
       const machine = await getMachineByQr(data);
       setActiveCourse(machine);
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to fetch training');
+      Alert.alert('Error', err.message || 'Failed to fetch training', [
+        { text: 'OK', onPress: () => setScanned(false) }
+      ]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReset = () => {
+    setActiveCourse(null);
+    setScanned(false);
   };
 
   if (hasPermission === null) {
@@ -37,7 +46,7 @@ export default function ScanScreen() {
   }
 
   if (activeCourse) {
-    return <CoursePlayer course={activeCourse} onBack={() => setActiveCourse(null)} />;
+    return <CoursePlayer course={activeCourse} onBack={handleReset} />;
   }
 
   return (
@@ -46,15 +55,18 @@ export default function ScanScreen() {
         {loading ? (
           <ActivityIndicator size="large" color="#2563eb" />
         ) : (
-          <BarCodeScanner
-            onBarCodeScanned={handleScan}
+          <CameraView
+            onBarcodeScanned={scanned ? undefined : handleScan}
+            barcodeScannerSettings={{
+              barcodeTypes: ["qr", "pdf417"],
+            }}
             style={StyleSheet.absoluteFillObject}
           />
         )}
       </View>
       <Text style={styles.hint}>Scan the machine QR to load training</Text>
-      <TouchableOpacity style={styles.button} onPress={() => setActiveCourse(null)}>
-        <Text style={styles.buttonText}>Reset</Text>
+      <TouchableOpacity style={styles.button} onPress={handleReset}>
+        <Text style={styles.buttonText}>Reset Scanner</Text>
       </TouchableOpacity>
     </View>
   );
