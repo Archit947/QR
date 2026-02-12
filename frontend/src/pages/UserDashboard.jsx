@@ -177,20 +177,97 @@ const UserDashboard = () => {
         };
     }, [isScanning]);
 
-    const onScanSuccess = (decodedText) => {
-        // ... (Existing scan logic)
-        let qrId = decodedText;
-        try {
-            const url = new URL(decodedText);
-            const pathParts = url.pathname.split('/');
-            const scanIndex = pathParts.indexOf('scan');
-            if (scanIndex !== -1 && scanIndex + 1 < pathParts.length) {
-                qrId = pathParts[scanIndex + 1];
-            }
-        } catch (e) { }
+    const [academyContent, setAcademyContent] = useState([]);
+    const [scanError, setScanError] = useState(null);
 
+    // ... (existing useEffect for dashboard data)
+
+    // ... (existing handleSignOut)
+
+    // ... (existing useEffect for scanner)
+
+    const onScanSuccess = async (decodedText) => {
         setIsScanning(false);
-        navigate(`/scan/${qrId}`);
+        setLoading(true);
+        setScanError(null);
+
+        try {
+            let qrId = decodedText;
+            try {
+                const url = new URL(decodedText);
+                const pathParts = url.pathname.split('/');
+                const scanIndex = pathParts.indexOf('scan');
+                if (scanIndex !== -1 && scanIndex + 1 < pathParts.length) {
+                    qrId = pathParts[scanIndex + 1];
+                }
+            } catch (e) {
+                // Not a URL, use raw text
+            }
+
+            console.log("Scanned QR ID:", qrId);
+
+            // 1. Get Content IDs from Mapping
+            const { data: mappings, error: mapError } = await supabase
+                .from('qr_content_mapping')
+                .select('content_id')
+                .eq('qr_id', qrId);
+
+            if (mapError) throw mapError;
+
+            if (!mappings || mappings.length === 0) {
+                setScanError("No training content found for this QR code.");
+                setActiveTab('academy');
+                setAcademyContent([]);
+                setLoading(false);
+                return;
+            }
+
+            const contentIds = mappings.map(m => m.content_id);
+
+            // 2. Fetch Content Details
+            const { data: contents, error: contentError } = await supabase
+                .from('training_content')
+                .select('*')
+                .in('id', contentIds);
+
+            if (contentError) throw contentError;
+
+            // 3. Fetch User Progress for these contents
+            const { data: progress, error: progressError } = await supabase
+                .from('training_progress')
+                .select('content_id, status')
+                .eq('user_id', user.id)
+                .in('content_id', contentIds);
+
+            if (progressError) throw progressError;
+
+            // 4. Filter Uncompleted
+            const completedIds = progress
+                .filter(p => p.status === 'completed')
+                .map(p => p.content_id);
+
+            const uncompletedCourses = contents.filter(c => !completedIds.includes(c.id));
+
+            // Map to UI format
+            const formattedCourses = uncompletedCourses.map(c => ({
+                id: c.id,
+                title: c.title,
+                type: c.type,
+                duration: "20m", // Placeholder
+                description: "Scan result content", // Placeholder
+                status: "PENDING"
+            }));
+
+            setAcademyContent(formattedCourses);
+            setActiveTab('academy');
+
+        } catch (error) {
+            console.error("Scan Error:", error);
+            setScanError("Failed to load content. Please try again.");
+            setActiveTab('academy');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -246,174 +323,245 @@ const UserDashboard = () => {
             {/* Main Content Area - Negative Margin to overlap header */}
             <div className="px-5 -mt-16 relative z-10 flex flex-col gap-6">
 
-                {/* OJT Dashboard Card */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-start mb-6">
-                        <h3 className="text-xs font-bold text-gray-400 tracking-wider uppercase">OJT Dashboard</h3>
-                        <span className="bg-blue-50 text-blue-700 text-xs px-3 py-1 rounded-lg font-medium">
-                            Active Period: {stats.activePeriod}
-                        </span>
-                    </div>
+                {activeTab === 'overview' && (
+                    <>
+                        {/* OJT Dashboard Card */}
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-start mb-6">
+                                <h3 className="text-xs font-bold text-gray-400 tracking-wider uppercase">OJT Dashboard</h3>
+                                <span className="bg-blue-50 text-blue-700 text-xs px-3 py-1 rounded-lg font-medium">
+                                    Active Period: {stats.activePeriod}
+                                </span>
+                            </div>
 
-                    <div className="flex items-center justify-between px-2">
-                        {/* Circular Progress */}
-                        <div className="relative w-24 h-24 flex items-center justify-center">
-                            <svg className="w-full h-full transform -rotate-90">
-                                <circle
-                                    cx="48"
-                                    cy="48"
-                                    r="40"
-                                    stroke="currentColor"
-                                    strokeWidth="8"
-                                    fill="transparent"
-                                    className="text-gray-100"
-                                />
-                                <circle
-                                    cx="48"
-                                    cy="48"
-                                    r="40"
-                                    stroke="currentColor"
-                                    strokeWidth="8"
-                                    fill="transparent"
-                                    strokeDasharray={251.2}
-                                    strokeDashoffset={251.2 - (251.2 * stats.progress) / 100}
-                                    className="text-[#1e3a8a]"
-                                    strokeLinecap="round"
-                                />
-                            </svg>
-                            <span className="absolute text-xl font-bold text-gray-800">{stats.progress}%</span>
+                            <div className="flex items-center justify-between px-2">
+                                {/* Circular Progress */}
+                                <div className="relative w-24 h-24 flex items-center justify-center">
+                                    <svg className="w-full h-full transform -rotate-90">
+                                        <circle
+                                            cx="48"
+                                            cy="48"
+                                            r="40"
+                                            stroke="currentColor"
+                                            strokeWidth="8"
+                                            fill="transparent"
+                                            className="text-gray-100"
+                                        />
+                                        <circle
+                                            cx="48"
+                                            cy="48"
+                                            r="40"
+                                            stroke="currentColor"
+                                            strokeWidth="8"
+                                            fill="transparent"
+                                            strokeDasharray={251.2}
+                                            strokeDashoffset={251.2 - (251.2 * stats.progress) / 100}
+                                            className="text-[#1e3a8a]"
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                    <span className="absolute text-xl font-bold text-gray-800">{stats.progress}%</span>
+                                </div>
+
+                                <div className="h-12 w-px bg-gray-100 mx-4"></div>
+
+                                <div className="flex-1 flex justify-around text-center">
+                                    <div>
+                                        <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
+                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1">Completed</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
+                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1">Assigned</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="h-12 w-px bg-gray-100 mx-4"></div>
-
-                        <div className="flex-1 flex justify-around text-center">
-                            <div>
-                                <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
-                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1">Completed</div>
+                        {/* Pending Trainings */}
+                        <div>
+                            <div className="flex justify-between items-end mb-4 px-1">
+                                <h3 className="text-sm font-bold text-gray-800 uppercase border-b-2 border-[#1e3a8a] pb-1 inline-block">
+                                    Pending Trainings
+                                </h3>
+                                <button onClick={() => setActiveTab('academy')} className="text-xs font-semibold text-[#1e3a8a] pb-1 hover:underline">
+                                    View Catalog
+                                </button>
                             </div>
-                            <div>
-                                <div className="text-2xl font-bold text-blue-600">{stats.assigned}</div>
-                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-1">Assigned</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Pending Trainings */}
-                <div>
-                    <div className="flex justify-between items-end mb-4 px-1">
-                        <h3 className="text-sm font-bold text-gray-800 uppercase border-b-2 border-[#1e3a8a] pb-1 inline-block">
-                            Pending Trainings
-                        </h3>
-                        <button className="text-xs font-semibold text-[#1e3a8a] pb-1 hover:underline">
-                            View Catalog
-                        </button>
-                    </div>
-
-                    <div className="space-y-4">
-                        {loading ? (
                             <div className="space-y-4">
-                                <div className="h-24 bg-white rounded-2xl animate-pulse"></div>
-                                <div className="h-24 bg-white rounded-2xl animate-pulse"></div>
-                            </div>
-                        ) : pendingTrainings.length === 0 ? (
-                            <div className="bg-white p-6 rounded-2xl text-center text-gray-500 shadow-sm border border-gray-100">
-                                <p>No pending trainings.</p>
-                                <button onClick={() => setActiveTab('academy')} className="mt-2 text-blue-600 font-semibold text-sm hover:underline">Browse Catalog</button>
-                            </div>
-                        ) : (
-                            pendingTrainings.map((training) => (
-                                <div key={training.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex gap-4 items-center">
-                                            <div className="bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center">
-                                                <Settings className="text-gray-600 w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 text-sm mb-1">{training.title}</h4>
-                                                {training.status === 'IN PROGRESS' ? (
-                                                    <>
-                                                        <div className="w-32 h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                                                            <div className="h-full bg-[#1e3a8a] w-[30%] rounded-full"></div>
-                                                        </div>
-                                                        <div className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wide">
-                                                            Progress: 30%
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                                                        <div className="flex items-center gap-1">
-                                                            <Clock size={12} /> 20m
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <FileText size={12} /> {training.type}
-                                                        </div>
+                                {loading ? (
+                                    <div className="space-y-4">
+                                        <div className="h-24 bg-white rounded-2xl animate-pulse"></div>
+                                        <div className="h-24 bg-white rounded-2xl animate-pulse"></div>
+                                    </div>
+                                ) : pendingTrainings.length === 0 ? (
+                                    <div className="bg-white p-6 rounded-2xl text-center text-gray-500 shadow-sm border border-gray-100">
+                                        <p>No pending trainings.</p>
+                                        <button onClick={() => setActiveTab('academy')} className="mt-2 text-blue-600 font-semibold text-sm hover:underline">Browse Catalog</button>
+                                    </div>
+                                ) : (
+                                    pendingTrainings.map((training) => (
+                                        <div key={training.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex gap-4 items-center">
+                                                    <div className="bg-gray-50 w-12 h-12 rounded-xl flex items-center justify-center">
+                                                        <Settings className="text-gray-600 w-6 h-6" />
                                                     </div>
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 text-sm mb-1">{training.title}</h4>
+                                                        {training.status === 'IN PROGRESS' ? (
+                                                            <>
+                                                                <div className="w-32 h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+                                                                    <div className="h-full bg-[#1e3a8a] w-[30%] rounded-full"></div>
+                                                                </div>
+                                                                <div className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wide">
+                                                                    Progress: 30%
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                                                                <div className="flex items-center gap-1">
+                                                                    <Clock size={12} /> 20m
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <FileText size={12} /> {training.type}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold px-2 py-0.5 rounded">
+                                                    {training.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-end mt-2">
+                                                {training.status === 'IN PROGRESS' ? (
+                                                    <button className="text-[#1e3a8a] font-bold text-sm flex items-center gap-1 hover:underline">
+                                                        Resume <Play size={16} fill="currentColor" />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsScanning(true)
+                                                        }}
+                                                        className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        Initialize Session <ChevronRight size={16} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
-                                        <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold px-2 py-0.5 rounded">
-                                            {training.status}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-end mt-2">
-                                        {training.status === 'IN PROGRESS' ? (
-                                            <button className="text-[#1e3a8a] font-bold text-sm flex items-center gap-1 hover:underline">
-                                                Resume <Play size={16} fill="currentColor" />
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => {
-                                                    // Assuming start logic, for now open scanner or navigate
-                                                    setIsScanning(true)
-                                                }}
-                                                className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                Initialize Session <ChevronRight size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
 
-                {/* Recent Certifications */}
-                <div>
-                    <h3 className="text-sm font-bold text-gray-800 uppercase mb-4 px-1">
-                        Recent Certifications
-                    </h3>
-                    {loading ? (
-                        <div className="flex gap-4">
-                            <div className="w-48 h-20 bg-white rounded-xl animate-pulse"></div>
-                            <div className="w-48 h-20 bg-white rounded-xl animate-pulse"></div>
-                        </div>
-                    ) : certifications.length === 0 ? (
-                        <div className="text-gray-500 text-sm px-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                            No certifications yet. Complete a course to earn one!
-                        </div>
-                    ) : (
-                        <div className="flex gap-4 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar">
-                            {certifications.map(cert => (
-                                <div key={cert.id} className="min-w-[200px] bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <div className="relative">
-                                            <div className="w-6 h-8 bg-gray-200 rounded-sm"></div>
-                                            <div className="absolute -bottom-1 -right-1 bg-[#1e3a8a] text-white rounded-full p-0.5">
-                                                <CheckCircle size={10} />
+                        {/* Recent Certifications */}
+                        <div>
+                            <h3 className="text-sm font-bold text-gray-800 uppercase mb-4 px-1">
+                                Recent Certifications
+                            </h3>
+                            {loading ? (
+                                <div className="flex gap-4">
+                                    <div className="w-48 h-20 bg-white rounded-xl animate-pulse"></div>
+                                    <div className="w-48 h-20 bg-white rounded-xl animate-pulse"></div>
+                                </div>
+                            ) : certifications.length === 0 ? (
+                                <div className="text-gray-500 text-sm px-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                    No certifications yet. Complete a course to earn one!
+                                </div>
+                            ) : (
+                                <div className="flex gap-4 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar">
+                                    {certifications.map(cert => (
+                                        <div key={cert.id} className="min-w-[200px] bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <div className="relative">
+                                                    <div className="w-6 h-8 bg-gray-200 rounded-sm"></div>
+                                                    <div className="absolute -bottom-1 -right-1 bg-[#1e3a8a] text-white rounded-full p-0.5">
+                                                        <CheckCircle size={10} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900 text-sm leading-tight">{cert.title}</p>
+                                                <p className="text-[10px] text-gray-400 mt-0.5">Expires {cert.expires}</p>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-900 text-sm leading-tight">{cert.title}</p>
-                                        <p className="text-[10px] text-gray-400 mt-0.5">Expires {cert.expires}</p>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
+                            )}
                         </div>
-                    )}
-                </div>
+                    </>
+                )}
+
+                {activeTab === 'academy' && (
+                    <div className="flex flex-col gap-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-800">Academy Courses</h2>
+                            {scanError && <span className="text-xs text-red-500 bg-red-50 px-2 py-1 rounded">{scanError}</span>}
+                        </div>
+
+                        {loading ? (
+                            <div className="space-y-4 animate-pulse">
+                                <div className="h-32 bg-white rounded-2xl"></div>
+                                <div className="h-32 bg-white rounded-2xl"></div>
+                            </div>
+                        ) : academyContent.length > 0 ? (
+                            <div className="space-y-4">
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
+                                    <p className="text-sm text-blue-800 font-medium flex items-center gap-2">
+                                        <QrCode size={16} /> Content from Scan
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-1">Showing {academyContent.length} uncompleted course(s).</p>
+                                </div>
+                                {academyContent.map(course => (
+                                    <div key={course.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex gap-4">
+                                                <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center text-blue-600">
+                                                    <BookOpen size={24} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-900 text-sm mb-1">{course.title}</h4>
+                                                    <p className="text-xs text-gray-500 line-clamp-2 mb-2">{course.description}</p>
+                                                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                                                        <span className="flex items-center gap-1"><Clock size={12} /> {course.duration}</span>
+                                                        <span className="flex items-center gap-1"><FileText size={12} /> {course.type}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button className="w-full bg-[#1e3a8a] text-white py-3 rounded-xl text-sm font-semibold hover:bg-blue-900 transition-colors mt-2">
+                                            Start Training
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <BookOpen className="text-gray-300 w-8 h-8" />
+                                </div>
+                                <h3 className="text-gray-900 font-bold mb-1">No Courses Found</h3>
+                                <p className="text-gray-500 text-sm mb-4">Scan a QR code to view training content.</p>
+                                <button
+                                    onClick={() => setIsScanning(true)}
+                                    className="bg-[#1e3a8a] text-white px-6 py-2 rounded-full text-sm font-medium"
+                                >
+                                    Scan QR Code
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Placeholders for other tabs */}
+                {(activeTab === 'log' || activeTab === 'account') && (
+                    <div className="bg-white p-8 rounded-2xl text-center border border-gray-100 shadow-sm">
+                        <p className="text-gray-500">Feature coming soon.</p>
+                    </div>
+                )}
 
             </div>
 
