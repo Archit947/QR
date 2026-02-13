@@ -720,10 +720,64 @@ const UserDashboard = () => {
                     </div>
                 )}
 
-                {/* Placeholders for other tabs */}
+                {/* Log Tab - Completed Trainings */}
                 {activeTab === 'log' && (
-                    <div className="bg-white p-8 rounded-2xl text-center border border-gray-100 shadow-sm mt-10">
-                        <p className="text-gray-500">Log content coming soon.</p>
+                    <div className="flex flex-col gap-6 pt-4">
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-[#0f172a] mb-1">Training Log</h2>
+                            <p className="text-gray-500 text-sm">Your completed training history</p>
+                        </div>
+
+                        {loading ? (
+                            <div className="space-y-4 animate-pulse">
+                                <div className="h-24 bg-gray-100 rounded-2xl"></div>
+                                <div className="h-24 bg-gray-100 rounded-2xl"></div>
+                            </div>
+                        ) : completedTrainings.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center mt-10 text-center">
+                                <div className="w-32 h-32 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                    <CheckCircle className="text-gray-400 w-12 h-12" strokeWidth={1.5} />
+                                </div>
+                                <h3 className="text-[#0f172a] font-bold text-lg mb-2">No Completed Trainings</h3>
+                                <p className="text-gray-500 text-sm max-w-[250px] leading-relaxed mb-8">
+                                    Complete your first training to see it here.
+                                </p>
+                                <button
+                                    onClick={() => setActiveTab('academy')}
+                                    className="bg-[#1e3a8a] text-white px-8 py-3.5 rounded-xl text-sm font-semibold shadow-xl shadow-blue-900/10 hover:shadow-blue-900/20 transition-all flex items-center gap-2"
+                                >
+                                    <BookOpen size={18} /> Browse Academy
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {completedTrainings.map((training) => (
+                                    <div key={training.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex gap-4 flex-1">
+                                                <div className="bg-emerald-50 w-12 h-12 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                                    <CheckCircle size={24} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-bold text-gray-900 text-sm mb-1">{training.title}</h4>
+                                                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                                                        <span className="flex items-center gap-1">
+                                                            <FileText size={12} /> {training.type}
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <Clock size={12} /> Completed: {training.completedAt}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-bold px-2 py-0.5 rounded">
+                                                COMPLETED
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
