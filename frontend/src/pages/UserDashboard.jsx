@@ -203,6 +203,7 @@ const UserDashboard = () => {
     });
     const [scanError, setScanError] = useState(null);
     const [scanMessage, setScanMessage] = useState(null);
+    const [debugInfo, setDebugInfo] = useState(null);
     const [lastScannedQrId, setLastScannedQrId] = useState(() => localStorage.getItem('lastScannedQrId'));
 
     // Move activeTab initialization here if needed, or keep it if it's already defined elsewhere
@@ -296,32 +297,28 @@ const UserDashboard = () => {
         setLoading(true);
         setScanError(null);
         setScanMessage(null);
+        setDebugInfo(null);
 
         try {
+            console.log("--- SCAN START ---");
             console.log("Raw Scanned Data:", decodedText);
             let qrId = decodedText;
 
-            // Improved Parsing: Handle URLs and paths robustly
-            if (decodedText.includes('scan/')) {
+            // Robust Robust UUID Extraction
+            const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+            const uuidMatch = decodedText.match(uuidRegex);
+
+            if (uuidMatch) {
+                qrId = uuidMatch[0];
+                console.log("UUID detected via Regex:", qrId);
+            } else if (decodedText.includes('scan/')) {
                 const parts = decodedText.split('scan/');
-                if (parts.length > 1) {
-                    qrId = parts[1].split(/[/?#]/)[0]; // Get the UUID part
-                }
-            } else {
-                try {
-                    const url = new URL(decodedText);
-                    const pathParts = url.pathname.split('/');
-                    const scanIndex = pathParts.indexOf('scan');
-                    if (scanIndex !== -1 && scanIndex + 1 < pathParts.length) {
-                        qrId = pathParts[scanIndex + 1];
-                    }
-                } catch (e) {
-                    // Not a valid URL, fallback to raw text (maybe it's just the UUID)
-                    console.log("Not a URL, using raw text as ID");
-                }
+                qrId = parts[1].split(/[/?#]/)[0];
+                console.log("ID detected via path splitting:", qrId);
             }
 
-            console.log("Extracted QR ID:", qrId);
+            setDebugInfo({ raw: decodedText, extractedId: qrId });
+            console.log("Final Extracted QR ID:", qrId);
 
             // 1. Get Content IDs from Mapping
             const { data: mappings, error: mapError } = await supabase
@@ -698,6 +695,26 @@ const UserDashboard = () => {
                                 >
                                     <QrCode size={18} /> Scan QR Code
                                 </button>
+
+                                {debugInfo && (
+                                    <div className="mt-10 p-4 bg-gray-50 rounded-xl border border-gray-200 w-full max-w-xs text-left">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Diagnostic Data</p>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="text-[10px] text-gray-400">Raw Data:</p>
+                                                <p className="text-[11px] font-mono break-all text-gray-600">{debugInfo.raw}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-400">Extracted ID:</p>
+                                                <p className="text-[11px] font-mono text-blue-600 font-bold">{debugInfo.extractedId}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-gray-400">Total Courses Found:</p>
+                                                <p className="text-[11px] font-mono text-gray-600">{academyContent.length === 0 ? "0 (Check Mapping Table)" : academyContent.length}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
