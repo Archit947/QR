@@ -26,7 +26,7 @@ const UserDashboard = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [isScanning, setIsScanning] = useState(false);
-    const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'academy' | 'scan' | 'log' | 'account'
+    const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'overview'); // 'overview' | 'academy' | 'scan' | 'log' | 'account'
 
     const [stats, setStats] = useState({
         activePeriod: "Q3",
@@ -194,26 +194,18 @@ const UserDashboard = () => {
         };
     }, [isScanning]);
 
-    const [academyContent, setAcademyContent] = useState([]);
-    const [scanError, setScanError] = useState(null);
-    const [lastScannedQrId, setLastScannedQrId] = useState(null);
-
-    // Persistence Logic: Load from localStorage on mount
-    useEffect(() => {
-        const savedAcademy = localStorage.getItem('academyContent');
-        const savedQrId = localStorage.getItem('lastScannedQrId');
-        const savedTab = localStorage.getItem('activeTab');
-
-        if (savedAcademy) {
-            try {
-                setAcademyContent(JSON.parse(savedAcademy));
-            } catch (e) {
-                console.error("Failed to parse saved academy content", e);
-            }
+    const [academyContent, setAcademyContent] = useState(() => {
+        const saved = localStorage.getItem('academyContent');
+        if (saved) {
+            try { return JSON.parse(saved); } catch (e) { return []; }
         }
-        if (savedQrId) setLastScannedQrId(savedQrId);
-        if (savedTab) setActiveTab(savedTab);
-    }, []);
+        return [];
+    });
+    const [scanError, setScanError] = useState(null);
+    const [lastScannedQrId, setLastScannedQrId] = useState(() => localStorage.getItem('lastScannedQrId'));
+
+    // Move activeTab initialization here if needed, or keep it if it's already defined elsewhere
+    // Checking where activeTab is defined... it was at line 29.
 
     // Persistence Logic: Save to localStorage when state changes
     useEffect(() => {

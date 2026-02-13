@@ -22,8 +22,14 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    setSession(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ session, loading }}>
+    <AuthContext.Provider value={{ session, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
