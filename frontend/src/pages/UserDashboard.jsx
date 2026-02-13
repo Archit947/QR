@@ -202,6 +202,7 @@ const UserDashboard = () => {
         return [];
     });
     const [scanError, setScanError] = useState(null);
+    const [scanMessage, setScanMessage] = useState(null);
     const [lastScannedQrId, setLastScannedQrId] = useState(() => localStorage.getItem('lastScannedQrId'));
 
     // Move activeTab initialization here if needed, or keep it if it's already defined elsewhere
@@ -294,21 +295,33 @@ const UserDashboard = () => {
         setIsScanning(false);
         setLoading(true);
         setScanError(null);
+        setScanMessage(null);
 
         try {
+            console.log("Raw Scanned Data:", decodedText);
             let qrId = decodedText;
-            try {
-                const url = new URL(decodedText);
-                const pathParts = url.pathname.split('/');
-                const scanIndex = pathParts.indexOf('scan');
-                if (scanIndex !== -1 && scanIndex + 1 < pathParts.length) {
-                    qrId = pathParts[scanIndex + 1];
+
+            // Improved Parsing: Handle URLs and paths robustly
+            if (decodedText.includes('scan/')) {
+                const parts = decodedText.split('scan/');
+                if (parts.length > 1) {
+                    qrId = parts[1].split(/[/?#]/)[0]; // Get the UUID part
                 }
-            } catch (e) {
-                // Not a URL, use raw text
+            } else {
+                try {
+                    const url = new URL(decodedText);
+                    const pathParts = url.pathname.split('/');
+                    const scanIndex = pathParts.indexOf('scan');
+                    if (scanIndex !== -1 && scanIndex + 1 < pathParts.length) {
+                        qrId = pathParts[scanIndex + 1];
+                    }
+                } catch (e) {
+                    // Not a valid URL, fallback to raw text (maybe it's just the UUID)
+                    console.log("Not a URL, using raw text as ID");
+                }
             }
 
-            console.log("Scanned QR ID:", qrId);
+            console.log("Extracted QR ID:", qrId);
 
             // 1. Get Content IDs from Mapping
             const { data: mappings, error: mapError } = await supabase
@@ -319,7 +332,8 @@ const UserDashboard = () => {
             if (mapError) throw mapError;
 
             if (!mappings || mappings.length === 0) {
-                setScanError("No training content found for this QR code.");
+                console.log("No mappings found for QR ID:", qrId);
+                setScanError("Machine QR recognized but no training content is linked to it yet.");
                 setActiveTab('academy');
                 setAcademyContent([]);
                 setLoading(false);
@@ -364,6 +378,11 @@ const UserDashboard = () => {
 
             setAcademyContent(formattedCourses);
             setLastScannedQrId(qrId);
+
+            if (formattedCourses.length === 0 && contents.length > 0) {
+                setScanMessage("You have already completed all training for this machine!");
+            }
+
             setActiveTab('academy');
 
         } catch (error) {
@@ -622,7 +641,8 @@ const UserDashboard = () => {
                             <p className="text-gray-500 text-sm">Explore your assigned training modules</p>
                         </div>
 
-                        {scanError && <span className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{scanError}</span>}
+                        {scanError && <div className="text-xs text-red-500 bg-red-50 px-3 py-3 rounded-xl border border-red-100 mb-2">{scanError}</div>}
+                        {scanMessage && <div className="text-xs text-emerald-600 bg-emerald-50 px-3 py-3 rounded-xl border border-emerald-100 mb-2 font-medium">{scanMessage}</div>}
 
                         {loading ? (
                             <div className="space-y-4 animate-pulse">
