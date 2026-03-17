@@ -14,7 +14,7 @@ import ScanScreen from './src/screens/ScanScreen';
 import CourseScreen from './src/screens/CourseScreen'; // Keep for Scan navigation
 import OverviewScreen from './src/screens/OverviewScreen';
 import AcademyScreen from './src/screens/AcademyScreen';
-import LogScreen from './src/screens/LogScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
 import AccountScreen from './src/screens/AccountScreen';
 
 const Stack = createNativeStackNavigator();
@@ -42,7 +42,7 @@ function AppTabs() {
           if (route.name === 'Overview') IconComponent = Home;
           else if (route.name === 'Academy') IconComponent = BookOpen;
           else if (route.name === 'Scan') IconComponent = QrCode;
-          else if (route.name === 'Log') IconComponent = ClipboardList;
+          else if (route.name === 'History') IconComponent = ClipboardList;
           else if (route.name === 'Account') IconComponent = User;
           return <IconComponent color={focused ? '#2563eb' : '#94a3b8'} size={28} />;
         },
@@ -51,7 +51,7 @@ function AppTabs() {
       <Tab.Screen name="Overview" component={OverviewScreen} />
       <Tab.Screen name="Academy" component={AcademyScreen} />
       <Tab.Screen name="Scan" component={ScanScreen} options={{ tabBarLabel: "Scan" }} />
-      <Tab.Screen name="Log" component={LogScreen} />
+      <Tab.Screen name="History" component={HistoryScreen} />
       <Tab.Screen name="Account" component={AccountScreen} />
     </Tab.Navigator>
   );
